@@ -1,12 +1,12 @@
-import Header from '../Components/Header.jsx'
-import Login from '../Components/Login.jsx'
-import Footer from '../Components/Footer.jsx'
+import { Header } from '../Components/Header.jsx'
+import { AuthWin } from '../Components/AuthWin.jsx'
+import { Footer } from '../Components/Footer.jsx'
 
 export function Home() {
     return(
         <>
             <Header/>
-            <Login/>
+            <AuthWin/>
             <Footer/>
         </>
     );
