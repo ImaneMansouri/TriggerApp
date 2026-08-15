@@ -8,6 +8,9 @@ const entrySchema = new mongoose.Schema(
     symptom: { type: String, required: true },
     severity: { type: Number, min: 1, max: 10, required: true },
     notes: String,
+    // Where the user was when symptoms occurred — lets us later check whether outdoor
+    // exposure (pollen, air quality) correlates with severity more than indoor entries do.
+    location: { type: String, enum: ["indoor", "outdoor", "unknown"], default: "unknown" },
   },
   { timestamps: true }
 );

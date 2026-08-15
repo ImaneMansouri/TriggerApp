@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 
 const authRouter = require("./routes/auth");
 const entriesRouter = require("./routes/entries");
+const envRouter = require("./routes/env");
 
 const app = express();
 
@@ -23,6 +24,9 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRouter);
 app.use("/api/entries", entriesRouter);
+// Mounted at "/api" rather than "/api/env" — its routes cover /api/env/backfill as well as
+// the top-level /api/today, /api/patterns, /api/export dashboard endpoints. See routes/env.js.
+app.use("/api", envRouter);
 
 mongoose
   .connect(process.env.MONGO_URI)
