@@ -1,0 +1,10 @@
+
+
+/* Message indicating registration success */
+.success{
+    color: green
+}
+
+.error {
+    color: red
+}
