@@ -1,0 +1,65 @@
+.auth-win {
+    position: relative;
+    overflow: hidden;
+    
+    width: 760px;
+    max-width: 90vw;
+    min-height: 450px;
+
+    background: rgb(97, 210, 255);
+    border-radius: 28px;
+
+    box-shadow: 1px 2px 9px #F4AAB9;
+}
+
+.register-form, .login-form {
+    color: black;
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    transition: transform 0.5s ease-in-out;
+}
+
+.register-form {
+    left: 0;
+}
+
+.login-form {
+    right: 0;
+}
+
+.panel{
+    position: absolute;
+    top: 0;
+    right: 0;
+
+    width: 50%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    background: #F4AAB9;
+    transition: transform 0.5s ease-in-out;
+}
+
+.auth-win.active .panel{
+    transform: translateX(-100%);
+}
+
+.auth-win.active .login-form{
+    transform: translateX(0%);
+}
+
+.auth-win.active .register-form{
+    transform: translateX(-100%);
+}
