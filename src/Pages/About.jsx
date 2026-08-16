@@ -6,8 +6,8 @@ export function About() {
     return(
         <div className="login-page">
             <Header/>
-            <div className="login-main">
-                <p>By Imane Mansouri, Aya Cherkaoui, Paige Hoffman for CS Girlies 2026 Hackathon!</p>
+            <div className="about-main">
+                <p>Made with love and caffeine by Imane Mansouri, Aya Cherkaoui, Paige Hoffman for CS Girlies 2026 Hackathon!</p>
                 <Footer/>
             </div>
         </div  >

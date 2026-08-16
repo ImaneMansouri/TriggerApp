@@ -3,7 +3,7 @@
 export function Footer(){
     return(
         <footer>
-            <p>&copy; {new Date().getFullYear()} Symptom Tracker</p>
+            <p>&copy; {new Date().getFullYear()} Signall</p>
         </footer>
     );
 }

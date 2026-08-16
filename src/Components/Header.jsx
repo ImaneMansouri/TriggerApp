@@ -5,7 +5,7 @@ export function Header(){
 
     return(
         <header>
-            <h1>Symptom Tracker</h1>
+            <h1>Signall</h1> <h3>Symptom Tracker</h3>
             <nav>
                 <ul>
                     <li><Link to="/">Home</Link></li>
