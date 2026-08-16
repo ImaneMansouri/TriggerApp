@@ -10,10 +10,10 @@ router.use(requireAuth);
 
 router.post("/", async (req, res) => {
   try {
-    const { date, symptom, severity, notes } = req.body;
+    const { date, symptom, severity, notes, location } = req.body;
     // userId comes from the verified token (req.userId), never from the request body —
     // otherwise a client could create entries under someone else's account.
-    const entry = await Entry.create({ userId: req.userId, date, symptom, severity, notes });
+    const entry = await Entry.create({ userId: req.userId, date, symptom, severity, notes, location });
     res.status(201).json(entry);
   } catch (err) {
     res.status(400).json({ error: "Could not create entry" });

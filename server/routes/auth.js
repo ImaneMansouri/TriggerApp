@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const requireAuth = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -64,6 +65,40 @@ router.post("/login", async (req, res) => {
     res.json({ token, user: safeUser });
   } catch (err) {
     res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// The only endpoint in this file that requires a token — signup/login are how you get one.
+// Only applied here, not with router.use, so it doesn't affect the public routes above.
+router.patch("/profile", requireAuth, async (req, res) => {
+  try {
+    const { lat, lon, conditions } = req.body;
+    const update = {};
+
+    if (lat !== undefined) {
+      if (typeof lat !== "number") return res.status(400).json({ error: "lat must be a number" });
+      update.lat = lat;
+    }
+    if (lon !== undefined) {
+      if (typeof lon !== "number") return res.status(400).json({ error: "lon must be a number" });
+      update.lon = lon;
+    }
+    if (conditions !== undefined) {
+      if (!Array.isArray(conditions) || !conditions.every((c) => typeof c === "string")) {
+        return res.status(400).json({ error: "conditions must be an array of strings" });
+      }
+      update.conditions = conditions;
+    }
+
+    const user = await User.findByIdAndUpdate(req.userId, update, { new: true });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const { password: _omit, ...safeUser } = user.toObject();
+    res.json({ user: safeUser });
+  } catch (err) {
+    res.status(500).json({ error: "Could not update profile" });
   }
 });
 

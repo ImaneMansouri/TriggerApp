@@ -89,6 +89,44 @@ The token is returned from signup/login and expires after 7 days. Requests witho
 
 ---
 
+### `PATCH /api/auth/profile`
+
+Updates the logged-in user's saved location and/or conditions. Used by onboarding (and anywhere else that needs to change these later) since there's no way to set them after signup otherwise.
+
+**Auth:** required
+
+**Body** — all fields optional, only the ones present are updated
+
+```json
+{
+  "lat": "number, optional",
+  "lon": "number, optional",
+  "conditions": ["string"]
+}
+```
+
+**Response** `200` — same `user` shape as signup/login
+
+```json
+{
+  "user": {
+    "_id": "string",
+    "email": "string",
+    "lat": "number | undefined",
+    "lon": "number | undefined",
+    "conditions": ["string"],
+    "createdAt": "ISO date string",
+    "updatedAt": "ISO date string"
+  }
+}
+```
+
+**Errors**
+- `400` — `lat`/`lon` present but not a number, or `conditions` present but not an array of strings
+- `401` — missing/invalid token
+
+---
+
 ## Entries
 
 ### `POST /api/entries`
