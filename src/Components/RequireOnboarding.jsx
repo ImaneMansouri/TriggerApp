@@ -24,3 +24,11 @@ export function RequireOnboarding({ children }) {
   }
   return children;
 }
+
+// Landing spot for "/onboarding" itself (and any unrecognized "/onboarding/*" sub-path) —
+// there's no page to render there, so without this the router finds no match and renders
+// nothing, a blank screen with no visible error. Sends the user to whichever step is next.
+export function OnboardingRedirect() {
+  const next = nextOnboardingStep(getUser());
+  return <Navigate to={next || "/onboarding/profile"} replace />;
+}

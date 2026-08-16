@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { setSession } from '../lib/api'
 import '../Styles/AuthWin.css'
 
 export function AuthWin(){ 
@@ -45,11 +46,11 @@ export function AuthWin(){
                     return
                 }
                 
-                //save token in browser
+                // save token in browser and continue through the actual onboarding flow
                 localStorage.setItem('token', data.token)
 
                 console.log(data.user)
-                navigate('/onboarding/conditions')},
+                navigate('/onboarding/profile')},
             //alt if user rejects location request
             async (error) => {
                 const response = await fetch('http://localhost:5050/api/auth/signup', {
@@ -95,9 +96,10 @@ export function AuthWin(){
             console.log(data.error)
             return
         }
-        localStorage.setItem('token', data.token)
-        console.log(data.user)
-        navigate('/home')
+        // cache the full user doc, not just the token — RequireOnboarding reads it to decide
+        // whether a returning user goes straight to Home or still has onboarding steps left
+        setSession(data.token, data.user)
+        navigate('/')
     }
 
     return(
