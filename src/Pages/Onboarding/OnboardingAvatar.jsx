@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { OnboardingProgress } from "../../Components/OnboardingProgress.jsx";
+import { CompanionGlyph } from "../../Components/CompanionGlyph.jsx";
 import { apiPatch, getToken, setSession } from "../../lib/api";
 import { navigateWithTransition } from "../../lib/motion";
-import { AVATAR_OPTIONS } from "../../lib/categories";
+import { COMPANIONS } from "../../lib/companions";
 
 export function OnboardingAvatar() {
   const navigate = useNavigate();
@@ -29,21 +30,20 @@ export function OnboardingAvatar() {
     <div className="page">
       <div className="page-content">
         <OnboardingProgress step={2} />
-        <h1 className="page-title">Pick your character</h1>
-        <p className="onboarding-blurb">This is who'll greet you on the home screen.</p>
+        <h1 className="page-title script-heading">Pick your companion</h1>
+        <p className="onboarding-blurb">This is who'll be with you on the home screen.</p>
 
-        <div className="avatar-grid">
-          {AVATAR_OPTIONS.map((avatar) => (
+        <div className="companion-grid">
+          {COMPANIONS.map((c) => (
             <button
-              key={avatar}
+              key={c.id}
               type="button"
-              className={`avatar-option ${selected === avatar ? "avatar-option-selected" : ""}`}
-              onClick={() => setSelected(avatar)}
-              aria-pressed={selected === avatar}
-              aria-label={avatar}
+              className={`companion-option ${selected === c.id ? "companion-option-selected" : ""}`}
+              onClick={() => setSelected(c.id)}
+              aria-pressed={selected === c.id}
+              aria-label={c.id}
             >
-              <img src={`/icons/avatar-${avatar}.png`} alt="" />
-              <span className="avatar-option-label">{avatar}</span>
+              <CompanionGlyph id={c.id} className="companion-option-glyph" />
             </button>
           ))}
         </div>

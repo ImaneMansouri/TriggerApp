@@ -18,6 +18,7 @@ import { OnboardingCapabilities } from './Pages/Onboarding/OnboardingCapabilitie
 import { OnboardingLocation } from './Pages/Onboarding/OnboardingLocation.jsx'
 import { RequireAuth } from './Components/RequireAuth.jsx'
 import { RequireOnboarding, OnboardingRedirect } from './Components/RequireOnboarding.jsx'
+import { RootRoute } from './Components/RootRoute.jsx'
 import { Setup } from './Pages/Setup.jsx'
 import { HashRouter, Routes, Route } from 'react-router-dom';
 
@@ -41,7 +42,12 @@ function App() {
               this, navigating there matches no route above and renders a blank page. More
               specific routes (e.g. "/onboarding/profile") still win over this splat. */}
           <Route path ="/onboarding/*" element={<RequireAuth><OnboardingRedirect/></RequireAuth>}/>
-          <Route path ="/" element={<RequireAuth><RequireOnboarding><Home/></RequireOnboarding></RequireAuth>}/>
+          {/* Root is always the login/signup entry point on a fresh visit, regardless of
+              whether a token is already saved — RootRoute handles the one exception (AuthWin
+              redirecting here right after a successful login, same session). Home lives at
+              "/home" instead. */}
+          <Route path ="/" element={<RootRoute/>}/>
+          <Route path ="/home" element={<RequireAuth><RequireOnboarding><Home/></RequireOnboarding></RequireAuth>}/>
           <Route path ="/log" element={<RequireAuth><LogEpisode/></RequireAuth>}/>
           <Route path ="/relief" element={<RequireAuth><Relief/></RequireAuth>}/>
           <Route path ="/safety" element={<RequireAuth><Safety/></RequireAuth>}/>

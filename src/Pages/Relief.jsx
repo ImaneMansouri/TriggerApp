@@ -102,7 +102,7 @@ export function Relief() {
           This isn't medical advice. If something feels serious, contact a healthcare provider.
         </p>
 
-        <button type="button" className="secondary-button" onClick={() => navigateWithTransition(navigate, "/")}>
+        <button type="button" className="secondary-button" onClick={() => navigateWithTransition(navigate, "/home")}>
           Back to today
         </button>
       </div>

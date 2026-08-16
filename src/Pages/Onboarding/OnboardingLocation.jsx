@@ -24,7 +24,7 @@ export function OnboardingLocation() {
       // empty/error state on first load. If Open-Meteo is having a bad day, we still let the
       // user in — Home's own retry handles a missing today's row gracefully either way.
       await apiPost("/api/env/backfill", {}).catch(() => {});
-      navigateWithTransition(navigate, "/");
+      navigateWithTransition(navigate, "/home");
     } catch (err) {
       setErrorMessage(err.message);
       setStatus("idle");

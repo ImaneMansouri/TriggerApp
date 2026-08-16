@@ -111,11 +111,15 @@ async function computePatterns(userId) {
     let best = null;
     for (const field of variables) {
       const baselineValues = envRows.map((r) => r[field]).filter((v) => v !== null && v !== undefined);
-      const episodeValues = dates
-        .map((d) => envByDate.get(d))
-        .filter(Boolean)
-        .map((r) => r[field])
-        .filter((v) => v !== null && v !== undefined);
+      // Keep the date alongside each value (not just the bare number) so the hit-rate stat
+      // below can take the most *recent* observations specifically, not an arbitrary subset.
+      const episodePairs = dates
+        .map((d) => [d, envByDate.get(d)])
+        .filter(([, row]) => row)
+        .map(([d, row]) => [d, row[field]])
+        .filter(([, v]) => v !== null && v !== undefined)
+        .sort((a, b) => (a[0] < b[0] ? 1 : -1)); // most recent first
+      const episodeValues = episodePairs.map(([, v]) => v);
 
       if (episodeValues.length < MIN_SAMPLE || baselineValues.length < MIN_SAMPLE) continue;
 
@@ -130,9 +134,19 @@ async function computePatterns(userId) {
       const direction = effectSize > 0 ? "higher" : "lower";
       const support = episodeValues.length >= 20 ? "strong" : episodeValues.length >= 14 ? "moderate" : "limited";
 
+      // Two supplementary, easier-to-parse-at-a-glance stats alongside effect size — same
+      // underlying numbers, just reframed. Hit rate: of the most recent (up to 10) episode
+      // observations, how many landed on the "notable" side of the baseline mean (e.g. "8 of
+      // 10"). Percent vs. baseline: the same episodeMean-vs-baselineMean gap effect size
+      // already captures, expressed as a percentage instead of standard deviations.
+      const recentWindow = episodePairs.slice(0, 10).map(([, v]) => v);
+      const hitCount = recentWindow.filter((v) => (direction === "higher" ? v > baselineMean : v < baselineMean)).length;
+      const percentVsBaseline = baselineMean !== 0 ? Math.round(((episodeMean - baselineMean) / baselineMean) * 100) : null;
+
       const candidate = {
         symptomId,
         symptomName: name,
+        category,
         field,
         fieldLabel: FIELD_LABELS[field] || field,
         nEpisodes: episodeValues.length,
@@ -143,6 +157,8 @@ async function computePatterns(userId) {
         support,
         direction,
         message: buildMessage(name, field, direction),
+        hitRate: { hits: hitCount, total: recentWindow.length },
+        percentVsBaseline,
       };
 
       if (!best || Math.abs(candidate.effectSize) > Math.abs(best.effectSize)) {

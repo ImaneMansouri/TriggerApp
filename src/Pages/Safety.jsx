@@ -42,7 +42,7 @@ export function Safety() {
           </ul>
         )}
 
-        <button type="button" className="safety-ack-button" onClick={() => navigateWithTransition(navigate, "/")}>
+        <button type="button" className="safety-ack-button" onClick={() => navigateWithTransition(navigate, "/home")}>
           I understand
         </button>
       </div>

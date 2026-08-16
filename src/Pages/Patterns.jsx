@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { BottomNav } from "../Components/BottomNav.jsx";
+import { Constellation } from "../Components/Constellation.jsx";
 import { ErrorState } from "../Components/ErrorState.jsx";
 import { EmptyState } from "../Components/EmptyState.jsx";
 import { apiGet } from "../lib/api";
@@ -8,8 +9,6 @@ const REASON_COPY = {
   category_not_evaluated: "We don't compare weather or air quality against this kind of symptom.",
   below_threshold: "Keep logging — we need a few more matched episodes before we can say anything meaningful.",
 };
-
-const SUPPORT_LABEL = { strong: "Strong signal", moderate: "Moderate signal", limited: "Limited signal" };
 
 function Skeleton() {
   return (
@@ -45,7 +44,8 @@ export function Patterns() {
   return (
     <div className="page page-with-nav">
       <div className="page-content">
-        <h1 className="page-title">Your patterns</h1>
+        <h1 className="script-heading page-title">What we're noticing</h1>
+        <p className="story-subtitle">Gentle observations from your own history</p>
 
         {status === "loading" && <Skeleton />}
         {status === "error" && <ErrorState message={`Couldn't load your patterns: ${errorMessage}`} onRetry={load} />}
@@ -59,16 +59,32 @@ export function Patterns() {
 
         {status === "ready" && hasAnything && (
           <>
+            {data.findings.length > 0 && <Constellation findings={data.findings} />}
+
             {data.findings.length > 0 && (
               <div className="pattern-list">
                 {data.findings.map((f) => (
-                  <div key={`${f.symptomId}-${f.field}`} className="pattern-card">
-                    <span className={`pattern-support pattern-support-${f.support}`}>{SUPPORT_LABEL[f.support]}</span>
-                    <p className="pattern-message">{f.message}</p>
+                  <div key={`${f.symptomId}-${f.field}`} className="coral-card pattern-card">
+                    <p className="coral-card-eyebrow">Possible pattern</p>
+                    <h2 className="script-heading coral-card-headline">{f.message}</h2>
+                    <div className="stat-pair">
+                      <div className="stat-item">
+                        <span className="stat-value">
+                          {f.hitRate.hits} of {f.hitRate.total}
+                        </span>
+                        <span className="stat-label">recent episodes matched</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-value">
+                          {f.percentVsBaseline === null ? "—" : `${f.percentVsBaseline > 0 ? "+" : ""}${f.percentVsBaseline}%`}
+                        </span>
+                        <span className="stat-label">vs your baseline</span>
+                      </div>
+                    </div>
                     <p className="pattern-sample">
                       Based on {f.nEpisodes} matched episodes, compared against {f.nBaseline} total observed days.
                     </p>
-                    <p className="pattern-disclaimer">Possible pattern, not a medical diagnosis.</p>
+                    <p className="pattern-footer">A possible pattern in your history — not a diagnosis.</p>
                   </div>
                 ))}
               </div>
@@ -76,10 +92,10 @@ export function Patterns() {
 
             {data.stillLearning.length > 0 && (
               <section className="log-section">
-                <h2 className="log-section-title">Still learning</h2>
+                <p className="coral-card-eyebrow worth-watching-eyebrow">Worth watching</p>
                 <div className="pattern-list">
                   {data.stillLearning.map((s) => (
-                    <div key={s.symptomId} className="pattern-card pattern-card-muted">
+                    <div key={s.symptomId} className="white-card pattern-card-muted">
                       <p className="pattern-message">
                         <strong>{s.name}:</strong> {REASON_COPY[s.reason] || "We're still learning your patterns."}
                       </p>
@@ -88,8 +104,6 @@ export function Patterns() {
                 </div>
               </section>
             )}
-
-            <p className="medical-disclaimer">Possible pattern, not a medical diagnosis.</p>
           </>
         )}
       </div>

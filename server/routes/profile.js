@@ -9,7 +9,11 @@ router.use(requireAuth);
 // lat/lon/conditions) so this file — covering the newer username/age/avatar/preferences
 // fields — never has to touch auth.js, which is actively owned by teammate work on
 // signup/login.
-const AVATAR_OPTIONS = ["fox", "owl", "cat", "bear"];
+// "avatar" stores a companion id — mirrors src/lib/companions.js on the frontend (no shared
+// code path between them, so kept in sync by hand). The rendered glyph (emoji today, an
+// image once the hand-drawn heart lands) is purely a frontend concern; the backend only
+// ever needs to validate and store the id.
+const AVATAR_OPTIONS = ["heart", "cloud", "sprout", "sun"];
 
 router.get("/avatars", (req, res) => {
   res.json({ avatars: AVATAR_OPTIONS });

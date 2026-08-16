@@ -13,4 +13,19 @@ export const SYMPTOM_CATEGORIES = [
   { id: "stomach", label: "Stomach" },
 ];
 
-export const AVATAR_OPTIONS = ["fox", "owl", "cat", "bear"];
+// A representative emoji per category — used wherever a tracked symptom needs a small glyph
+// (Story timeline, You/profile symptom list) without asking the user to pick one themselves.
+export const CATEGORY_EMOJI = {
+  nose: "👃",
+  eyes: "👁️",
+  skin: "🧴",
+  hives: "🔴",
+  swelling: "🎈",
+  breathing: "🫁",
+  mouth_throat: "👄",
+  stomach: "🤢",
+};
+
+export function categoryEmoji(category) {
+  return CATEGORY_EMOJI[category] || "🩹";
+}

@@ -5,15 +5,15 @@ import { ErrorState } from "../Components/ErrorState.jsx";
 import { EmptyState } from "../Components/EmptyState.jsx";
 import { apiGet, apiDownload } from "../lib/api";
 import { navigateWithTransition } from "../lib/motion";
+import { categoryEmoji } from "../lib/categories";
 
 // Ordered by how commonly useful each field is to see at a glance; the first 2-3 with real
-// data for a given episode become its "highlights" on the timeline card.
+// data for a given episode become its chips. No pollen, ever — see Home.jsx for why.
 const HIGHLIGHT_FIELDS = [
   { field: "relative_humidity_2m_mean", label: "Humidity", unit: "%", round: true },
   { field: "temperature_2m_mean", label: "Temp", unit: "°C", round: true },
   { field: "ozone", label: "Ozone", unit: " µg/m³", round: true },
-  { field: "pm2_5", label: "PM2.5", unit: " µg/m³", round: false },
-  { field: "pressure_change", label: "Pressure Δ", unit: " hPa", round: false },
+  { field: "pm2_5", label: "Air quality", unit: " µg/m³", round: false },
 ];
 
 function envHighlights(episode) {
@@ -30,8 +30,14 @@ function envHighlights(episode) {
   return highlights;
 }
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+function formatDateTime(iso) {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function TimelineSkeleton() {
@@ -110,7 +116,10 @@ export function History() {
   return (
     <div className="page page-with-nav">
       <div className="page-content">
-        <h1 className="page-title">Your story</h1>
+        <h1 className="script-heading page-title">Your story</h1>
+        {status === "ready" && (
+          <p className="story-subtitle">{episodes.length} moments logged · each one adds context</p>
+        )}
 
         <div className="history-actions">
           <button type="button" className="secondary-button" onClick={() => navigateWithTransition(navigate, "/log")}>
@@ -144,21 +153,24 @@ export function History() {
                   className="timeline-card"
                   onClick={() => navigateWithTransition(navigate, `/history/${ep._id}`)}
                 >
-                  <div className="timeline-card-date">{formatDate(ep.date)}</div>
+                  <div className="timeline-card-top">
+                    <span className="timeline-card-date">{formatDateTime(ep.date)}</span>
+                    <span className="location-pill">{ep.location}</span>
+                  </div>
                   <div className="timeline-card-symptoms">
                     {ep.symptoms.map((s) => (
                       <span key={s.symptomId} className="timeline-symptom-badge">
-                        {s.name} {s.severity}/5
+                        <span aria-hidden="true">{categoryEmoji(s.category)}</span> {s.name}
+                        <span className="severity-pill">{s.severity}/5</span>
                       </span>
                     ))}
                   </div>
-                  <div className="timeline-card-meta">
-                    <span className="timeline-card-location">{ep.location}</span>
+                  <div className="pill-chip-row timeline-card-chips">
                     {ep.environmentalContext?.status === "pending" ? (
-                      <span className="timeline-card-highlight timeline-card-highlight-pending">Gathering details...</span>
+                      <span className="pill-chip pill-chip-muted">Gathering details...</span>
                     ) : (
                       envHighlights(ep).map((h) => (
-                        <span key={h} className="timeline-card-highlight">
+                        <span key={h} className="pill-chip pill-chip-outline">
                           {h}
                         </span>
                       ))

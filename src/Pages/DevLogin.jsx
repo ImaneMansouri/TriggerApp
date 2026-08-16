@@ -19,7 +19,7 @@ export function DevLogin() {
       .then(({ token, user }) => {
         if (cancelled) return;
         setSession(token, user);
-        navigate("/", { replace: true });
+        navigate("/home", { replace: true });
       })
       .catch((err) => {
         if (!cancelled) setError(err.message);
