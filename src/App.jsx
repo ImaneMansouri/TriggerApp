@@ -18,6 +18,7 @@ import { OnboardingCapabilities } from './Pages/Onboarding/OnboardingCapabilitie
 import { OnboardingLocation } from './Pages/Onboarding/OnboardingLocation.jsx'
 import { RequireAuth } from './Components/RequireAuth.jsx'
 import { RequireOnboarding, OnboardingRedirect } from './Components/RequireOnboarding.jsx'
+import { AuraDefs } from './Components/AuraDefs.jsx'
 import { Setup } from './Pages/Setup.jsx'
 import { HashRouter, Routes, Route } from 'react-router-dom';
 
@@ -25,6 +26,7 @@ function App() {
 
   return(
     <>
+      <AuraDefs />
       <HashRouter>
         <Routes>
           <Route path ="/login" element={<Login/>}/>

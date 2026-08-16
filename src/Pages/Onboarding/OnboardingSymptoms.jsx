@@ -57,10 +57,10 @@ export function OnboardingSymptoms() {
   return (
     <div className="page">
       <div className="page-content">
-        <OnboardingProgress step={3} />
+        <OnboardingProgress step={3} back="/onboarding/avatar" />
         <h1 className="page-title">What do you want to track?</h1>
         <p className="onboarding-blurb">
-          Add the symptoms that matter to you — any name you like. Pick the category closest to
+          Add the symptoms that matter to you, any name you like. Pick the category closest to
           it so we know what environmental factors are worth comparing later.
         </p>
 

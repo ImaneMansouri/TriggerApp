@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { BottomNav } from "../Components/BottomNav.jsx";
 import { ErrorState } from "../Components/ErrorState.jsx";
 import { EmptyState } from "../Components/EmptyState.jsx";
-import { apiGet, apiDownload } from "../lib/api";
+import { apiGet, getUser } from "../lib/api";
 import { navigateWithTransition } from "../lib/motion";
+import { downloadDoctorSummaryPdf } from "../lib/pdf";
 
 // Ordered by how commonly useful each field is to see at a glance; the first 2-3 with real
 // data for a given episode become its "highlights" on the timeline card.
@@ -54,7 +55,6 @@ export function History() {
   const [status, setStatus] = useState("loading");
   const [episodes, setEpisodes] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
-  const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
   const pendingRetriesLeft = useRef(4);
 
@@ -95,15 +95,12 @@ export function History() {
     return () => clearTimeout(timer);
   }, [status, episodes]);
 
-  async function handleDownload() {
-    setDownloading(true);
+  function handleDownloadPdf() {
     setDownloadError("");
     try {
-      await apiDownload("/api/export", "triggerapp-export.csv");
-    } catch (err) {
-      setDownloadError(err.message);
-    } finally {
-      setDownloading(false);
+      downloadDoctorSummaryPdf(episodes, getUser());
+    } catch {
+      setDownloadError("Couldn't generate the PDF summary. Try again.");
     }
   }
 
@@ -116,8 +113,8 @@ export function History() {
           <button type="button" className="secondary-button" onClick={() => navigateWithTransition(navigate, "/log")}>
             Log new episode
           </button>
-          <button type="button" className="secondary-button" onClick={handleDownload} disabled={downloading}>
-            {downloading ? "Preparing..." : "Download summary for your doctor"}
+          <button type="button" className="secondary-button" onClick={handleDownloadPdf} disabled={episodes.length === 0}>
+            Download PDF summary for your doctor
           </button>
         </div>
 

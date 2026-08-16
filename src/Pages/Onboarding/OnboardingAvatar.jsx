@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { OnboardingProgress } from "../../Components/OnboardingProgress.jsx";
+import { AuraAvatar, avatarLabel } from "../../Components/AuraAvatar.jsx";
 import { apiPatch, getToken, setSession } from "../../lib/api";
 import { navigateWithTransition } from "../../lib/motion";
 import { AVATAR_OPTIONS } from "../../lib/categories";
@@ -28,7 +29,7 @@ export function OnboardingAvatar() {
   return (
     <div className="page">
       <div className="page-content">
-        <OnboardingProgress step={2} />
+        <OnboardingProgress step={2} back="/onboarding/profile" />
         <h1 className="page-title">Pick your character</h1>
         <p className="onboarding-blurb">This is who'll greet you on the home screen.</p>
 
@@ -42,8 +43,8 @@ export function OnboardingAvatar() {
               aria-pressed={selected === avatar}
               aria-label={avatar}
             >
-              <img src={`/icons/avatar-${avatar}.png`} alt="" />
-              <span className="avatar-option-label">{avatar}</span>
+              <AuraAvatar id={avatar} size={56} />
+              <span className="avatar-option-label">{avatarLabel(avatar)}</span>
             </button>
           ))}
         </div>

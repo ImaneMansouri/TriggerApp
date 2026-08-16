@@ -2,8 +2,11 @@
    Design tokens — the single source of truth for color, spacing, radii, and
    motion timing. Adjust here to restyle the whole app.
    ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Archivo:wght@400;500;600;700;800&display=swap');
+
 :root {
-  /* Palette */
+  /* Palette — "Aura": a warm watercolor sky world with one confident accent red,
+     reserved for primary actions, selection, and hero cards (see design/Aura.dc.html). */
   --color-sky: #61d2ff;
   --color-sky-soft: #d7f2ff;
   --color-cream: #fff8ec;
@@ -12,11 +15,19 @@
   --color-pink-soft: #fde3ea;
   --color-peach: #ffd9b8;
   --color-lavender: #ddc9ea;
-  --color-text: #3a3a4a;
-  --color-text-muted: #7a7a8c;
-  --color-text-on-sky: #3c3f5e;
+  --color-text: #204a5f;
+  --color-text-muted: #5a7f95;
+  --color-text-on-sky: #204a5f;
   --color-concern: #e98a8a;
   --color-white: #ffffff;
+
+  /* Accent — the one confident color. Primary CTAs, selection states, active nav,
+     hero/recommendation cards. Everything else stays in the sky-ink palette above. */
+  --color-accent: #ec3013;
+  --color-accent-2: #cf2f16;
+  --color-accent-soft: #ffe0d9;
+  --gradient-accent: linear-gradient(160deg, #ef4a2c, #cf2f16);
+
   /* Reserved for the safety screen only — a deliberately different room in the same
      world: still rounded, still this palette family, but solid and urgent rather than
      soft/translucent, so it reads as categorically different from everything else. */
@@ -25,11 +36,16 @@
 
   /* Full-bleed hero gradient (Today screen) vs. a softer echo of it for every
      other page — same palette, lower contrast so content stays readable. */
-  --gradient-sky: linear-gradient(180deg, #7ecaef 0%, #bfe4f6 26%, #fbdcc0 60%, #e6cbe9 100%);
+  --gradient-sky: linear-gradient(180deg, #c6e6f4 0%, #a9d6ef 46%, #8fc9ea 100%);
   --gradient-page: linear-gradient(180deg, #eef8fd 0%, #fdf6ec 55%, #f8eef6 100%);
 
   --glass-bg: rgba(255, 255, 255, 0.42);
   --glass-border: rgba(255, 255, 255, 0.75);
+
+  /* Type — Caveat for the warm handwritten headlines/titles, Archivo for everything
+     else. This pairing is Aura's signature "friendly, not clinical" personality. */
+  --font-heading: "Caveat", cursive;
+  --font-body: "Archivo", "Avenir Next", "Segoe UI", system-ui, sans-serif;
 
   /* Spacing scale */
   --space-2xs: 4px;
@@ -45,10 +61,11 @@
   --radius-lg: 28px;
   --radius-pill: 999px;
 
-  /* Shadows */
+  /* Shadows — soft, blue-tinted (per Aura's ambient sky world) */
   --shadow-sm: 0 2px 8px rgba(58, 58, 74, 0.06);
   --shadow-md: 0 4px 16px rgba(58, 58, 74, 0.1);
   --shadow-glow: 0 0 40px rgba(255, 255, 255, 0.55);
+  --shadow-accent: 0 14px 30px -12px rgba(180, 40, 20, 0.55);
 
   /* Motion timing */
   --duration-fast: 120ms;
@@ -67,7 +84,7 @@ body {
   background: var(--gradient-page);
   background-attachment: fixed;
   color: var(--color-text);
-  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 a {
@@ -106,6 +123,16 @@ a {
   }
   50% {
     transform: translateY(-7px);
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(3deg);
   }
 }
 
@@ -291,7 +318,10 @@ button:not(:disabled):active,
 }
 
 .page-title {
-  font-size: 1.5rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 2.4rem;
+  line-height: 1;
   margin: 0 0 var(--space-lg);
 }
 
@@ -349,8 +379,34 @@ button:not(:disabled):active,
 
 .nav-icon.active .nav-icon-frame,
 .nav-icon[aria-current="page"] .nav-icon-frame {
-  background: var(--color-sky);
+  background: var(--color-accent);
   color: var(--color-white);
+}
+
+.nav-icon.active,
+.nav-icon.active .nav-icon-label {
+  color: var(--color-accent);
+}
+
+/* Raised center "log" FAB — the one bottom-nav item that isn't a NavIcon. */
+.nav-fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  margin-top: -22px;
+  background: var(--gradient-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 22px -8px rgba(180, 40, 20, 0.6);
+}
+
+.nav-fab svg {
+  width: 24px;
+  height: 24px;
 }
 
 .nav-icon.active,
@@ -373,10 +429,24 @@ button:not(:disabled):active,
   width: 100%;
   max-width: 480px;
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  padding: 10px 16px calc(18px + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+.bottom-nav-pill {
+  pointer-events: auto;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
   align-items: flex-start;
-  padding: var(--space-sm) var(--space-xs) calc(var(--space-sm) + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.85) 30%);
+  gap: 4px;
+  padding: 9px 14px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 12px 30px -14px rgba(40, 90, 120, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 /* ==========================================================================
@@ -496,6 +566,45 @@ button:not(:disabled):active,
   border-radius: 50%;
 }
 
+.today-greeting-row {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-top: 4px;
+}
+
+.today-greeting-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-on-sky);
+  letter-spacing: 0.02em;
+}
+
+.today-greeting-name {
+  font-family: var(--font-heading);
+  font-size: 1.9rem;
+  line-height: 1;
+  color: var(--color-text-on-sky);
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.today-avatar-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--color-white);
+  background: #fff5ef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  filter: drop-shadow(0 4px 8px rgba(30, 60, 80, 0.2));
+}
+
 .today-hero {
   position: relative;
   z-index: 2;
@@ -504,6 +613,76 @@ button:not(:disabled):active,
   align-items: center;
   gap: var(--space-md);
   padding-top: 84px;
+}
+
+.hero-cloud {
+  margin-top: -8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-cloud {
+    animation: floatY 7s ease-in-out infinite;
+  }
+}
+
+.hero-nav-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
+  margin-bottom: var(--space-md);
+}
+
+.hero-nav-bubble {
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-nav-bubble:nth-child(1) {
+    animation: floatY 6s ease-in-out infinite;
+  }
+  .hero-nav-bubble:nth-child(2) {
+    animation: floatYSmall 7.5s ease-in-out infinite;
+  }
+  .hero-nav-bubble:nth-child(3) {
+    animation: floatY 8s ease-in-out infinite;
+  }
+}
+
+.hero-nav-circle {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 24px -8px rgba(40, 90, 120, 0.4);
+  color: #37627a;
+  filter: url(#wc2);
+}
+
+.hero-nav-circle svg {
+  width: 26px;
+  height: 26px;
+}
+
+.hero-nav-circle-accent {
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 10px 24px -8px rgba(180, 40, 20, 0.5);
+}
+
+.hero-nav-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2f5a72;
 }
 
 .curved-text {
@@ -535,10 +714,31 @@ button:not(:disabled):active,
 .curved-text text {
   /* viewBox is 260 wide now (was 220) — sized up to match so the rendered text stays the
      same visual size at the same CSS width. */
-  font-size: 14px;
-  font-weight: 800;
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 700;
   letter-spacing: 0.6px;
-  fill: var(--color-text-on-sky);
+  fill: #ffffff;
+  filter: drop-shadow(0 2px 4px rgba(40, 90, 120, 0.35));
+}
+
+.hero-bubble-area {
+  position: relative;
+}
+
+.companion-peek {
+  position: absolute;
+  left: -22px;
+  bottom: 4px;
+  z-index: 3;
+  display: block;
+  filter: drop-shadow(0 6px 10px rgba(40, 90, 120, 0.25));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .companion-peek {
+    animation: bob 4.5s ease-in-out infinite;
+  }
 }
 
 .character-button {
@@ -556,6 +756,22 @@ button:not(:disabled):active,
   justify-content: center;
   cursor: pointer;
   padding: 0;
+  filter: url(#wcbig);
+}
+
+.character-heart-icon {
+  width: 44px;
+  height: 44px;
+  display: block;
+  margin: 0 auto 6px;
+}
+
+.character-tap-label {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #5a7f95;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -571,34 +787,21 @@ button:not(:disabled):active,
 }
 
 .character-float {
-  display: block;
-  width: 74%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  overflow: hidden;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .character-float {
-    animation: floatY 3.6s ease-in-out infinite;
-  }
-}
-
-.character-float img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .cloud-badge {
   position: relative;
   background: var(--color-white);
   color: var(--color-text);
+  font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
-  padding: 10px 28px;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  padding: 8px 28px;
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-sm);
   isolation: isolate;
@@ -633,31 +836,33 @@ button:not(:disabled):active,
 
 .today-bottom {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  padding: var(--space-lg) var(--space-md) calc(var(--space-lg) + env(safe-area-inset-bottom));
-}
-
-.today-bottom-group {
-  display: flex;
   flex-direction: column;
-  gap: var(--space-md);
-  padding-top: var(--space-sm);
+  padding: 0 var(--space-md) calc(var(--space-lg) + env(safe-area-inset-bottom));
 }
 
+/* "Today's Wellness Recs" hero card — Aura reserves the accent gradient for exactly
+   this: the one card on Home that's a recommendation, not ambient sky chrome. */
 .advice-card {
-  background: var(--color-cream);
+  background: var(--gradient-accent);
   border-radius: var(--radius-lg);
-  padding: var(--space-md);
+  padding: var(--space-md) var(--space-md) var(--space-lg);
   flex: 1;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-accent);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: #fff;
+  filter: url(#wc);
 }
 
 .advice-card-title {
   margin: 0 0 var(--space-xs);
-  font-size: 1rem;
-  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: left;
+  color: #fff;
 }
 
 .advice-card-list {
@@ -665,7 +870,7 @@ button:not(:disabled):active,
   padding-left: 1.1em;
   font-size: 0.82rem;
   line-height: 1.5;
-  color: var(--color-text);
+  color: #ffe4dc;
 }
 
 .advice-card-list li + li {
@@ -702,8 +907,8 @@ button:not(:disabled):active,
 }
 
 .chip-selected {
-  background: var(--color-sky);
-  border-color: var(--color-sky);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
   color: #fff;
   font-weight: 600;
 }
@@ -746,8 +951,8 @@ button:not(:disabled):active,
 }
 
 .toggle-option-selected {
-  background: var(--color-sky);
-  border-color: var(--color-sky);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
   color: #fff;
   font-weight: 600;
 }
@@ -769,11 +974,12 @@ button:not(:disabled):active,
   padding: 16px;
   border: none;
   border-radius: var(--radius-md);
-  background: var(--color-sky);
+  background: var(--color-accent);
   color: #fff;
   font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
+  box-shadow: var(--shadow-accent);
 }
 
 .save-button:disabled {
@@ -935,6 +1141,22 @@ button:not(:disabled):active,
    Onboarding
    ========================================================================== */
 
+.onboarding-back-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: var(--color-white);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 8px 14px 8px 10px;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+
 .onboarding-progress {
   display: flex;
   gap: 8px;
@@ -949,13 +1171,18 @@ button:not(:disabled):active,
 }
 
 .onboarding-dot-active {
-  background: var(--color-sky);
+  background: var(--color-accent);
 }
 
 .onboarding-blurb {
   color: var(--color-text-muted);
   line-height: 1.5;
   margin-bottom: 24px;
+}
+
+.onboarding-blurb + .log-section .log-section-title,
+.page-title + .onboarding-blurb {
+  font-family: var(--font-body);
 }
 
 .onboarding-actions {
@@ -1016,6 +1243,37 @@ button:not(:disabled):active,
    Resources
    ========================================================================== */
 
+.emergency-card {
+  background: var(--gradient-accent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  color: #fff;
+  box-shadow: var(--shadow-accent);
+  filter: url(#wc);
+}
+
+.emergency-card-icon {
+  width: 26px;
+  height: 26px;
+  margin-bottom: var(--space-xs);
+}
+
+.emergency-card-title {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin: 0 0 6px;
+  color: #fff;
+}
+
+.emergency-card-body {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #ffe4dc;
+}
+
 .resource-card {
   background: var(--color-white);
   border-radius: var(--radius-md);
@@ -1056,7 +1314,7 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid var(--color-sky);
+  outline: 3px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -1108,8 +1366,8 @@ select:focus-visible,
 }
 
 .avatar-option-selected {
-  border-color: var(--color-sky);
-  background: var(--color-sky-soft);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 /* ==========================================================================
@@ -1131,7 +1389,7 @@ select:focus-visible,
 }
 
 .capability-list-can li::marker {
-  color: var(--color-sky);
+  color: var(--color-accent);
 }
 
 .capability-list-cant li::marker {
@@ -1154,7 +1412,7 @@ select:focus-visible,
 .acknowledge-row input[type="checkbox"] {
   width: 22px;
   height: 22px;
-  accent-color: var(--color-sky);
+  accent-color: var(--color-accent);
 }
 
 .onboarding-add-button {
@@ -1259,6 +1517,29 @@ select:focus-visible,
   margin-top: 0;
 }
 
+.profile-resources-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  background: var(--color-white);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-resources-row-chevron {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 1.2rem;
+}
+
 /* ==========================================================================
    Episode logger — symptom checklist + severity control
    ========================================================================== */
@@ -1287,7 +1568,7 @@ select:focus-visible,
 .symptom-check-label input[type="checkbox"] {
   width: 22px;
   height: 22px;
-  accent-color: var(--color-sky);
+  accent-color: var(--color-accent);
   flex-shrink: 0;
 }
 
@@ -1308,8 +1589,8 @@ select:focus-visible,
 }
 
 .severity-button-selected {
-  background: var(--color-sky);
-  border-color: var(--color-sky);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
   color: #fff;
 }
 
@@ -1616,6 +1897,87 @@ select:focus-visible,
    Patterns
    ========================================================================== */
 
+.constellation {
+  position: relative;
+  height: 190px;
+  margin-bottom: var(--space-sm);
+}
+
+.constellation-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.constellation-node {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px -8px rgba(40, 90, 120, 0.4);
+}
+
+.constellation-node-center {
+  left: 130px;
+  top: 68px;
+  width: 62px;
+  height: 62px;
+  font-size: 24px;
+}
+
+.constellation-node-a {
+  left: 46px;
+  top: 34px;
+  width: 42px;
+  height: 42px;
+  font-size: 18px;
+}
+
+.constellation-node-b {
+  left: 228px;
+  top: 22px;
+  width: 42px;
+  height: 42px;
+  font-size: 18px;
+}
+
+.constellation-node-c {
+  left: 90px;
+  top: 132px;
+  width: 38px;
+  height: 38px;
+  font-size: 16px;
+}
+
+.constellation-node-d {
+  left: 214px;
+  top: 122px;
+  width: 38px;
+  height: 38px;
+  font-size: 16px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .constellation-node-center {
+    animation: glowPulse 6s ease-in-out infinite;
+  }
+  .constellation-node-a {
+    animation: floatY 6s ease-in-out infinite;
+  }
+  .constellation-node-b {
+    animation: floatYSmall 7s ease-in-out infinite;
+  }
+  .constellation-node-c {
+    animation: floatY 8s ease-in-out infinite;
+  }
+  .constellation-node-d {
+    animation: floatYSmall 6.5s ease-in-out infinite;
+  }
+}
+
 .pattern-list {
   display: flex;
   flex-direction: column;
@@ -1650,9 +2012,20 @@ select:focus-visible,
   margin-bottom: var(--space-xs);
 }
 
+.pattern-card-strong {
+  background: var(--gradient-accent);
+  box-shadow: var(--shadow-accent);
+  color: #fff;
+  filter: url(#wc);
+}
+.pattern-card-strong .pattern-message,
+.pattern-card-strong .pattern-sample,
+.pattern-card-strong .pattern-disclaimer {
+  color: #ffe4dc;
+}
 .pattern-support-strong {
-  background: var(--color-pink-soft);
-  color: #a8455f;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 .pattern-support-moderate {
   background: var(--color-sky-soft);

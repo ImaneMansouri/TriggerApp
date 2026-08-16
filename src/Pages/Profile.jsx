@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomNav } from "../Components/BottomNav.jsx";
+import { AuraAvatar } from "../Components/AuraAvatar.jsx";
 import { clearSession, getUser, setSession, getToken, apiGet, apiPost, apiPatch, apiDelete } from "../lib/api";
 import { navigateWithTransition } from "../lib/motion";
 import { SYMPTOM_CATEGORIES, AVATAR_OPTIONS } from "../lib/categories";
@@ -159,7 +160,7 @@ export function Profile() {
                 aria-pressed={user?.avatar === avatar}
                 aria-label={avatar}
               >
-                <img src={`/icons/avatar-${avatar}.png`} alt="" />
+                <AuraAvatar id={avatar} size={40} />
               </button>
             ))}
           </div>
@@ -237,7 +238,7 @@ export function Profile() {
 
           {removedSymptoms.length > 0 && (
             <p className="profile-removed-note">
-              Removed: {removedSymptoms.map((s) => s.name).join(", ")} — their past episodes are still in your history.
+              Removed: {removedSymptoms.map((s) => s.name).join(", ")}. Their past episodes are still in your history.
             </p>
           )}
         </section>
@@ -249,6 +250,16 @@ export function Profile() {
             <span>I carry a prescribed epinephrine auto-injector</span>
           </label>
         </section>
+
+        <button
+          type="button"
+          className="profile-resources-row"
+          onClick={() => navigateWithTransition(navigate, "/resources")}
+        >
+          <span aria-hidden="true">🩹</span>
+          <span>First aid &amp; resources</span>
+          <span aria-hidden="true" className="profile-resources-row-chevron">›</span>
+        </button>
 
         <button type="button" className="save-button save-button-danger" onClick={handleLogout}>
           Log out

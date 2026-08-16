@@ -50,7 +50,7 @@ router.get("/today", async (req, res) => {
     if (!row) {
       return res
         .status(404)
-        .json({ error: "No environmental data for today yet — run POST /api/env/backfill first" });
+        .json({ error: "No environmental data for today yet. Run POST /api/env/backfill first." });
     }
 
     // Shaped into groups, one per dashboard tile, rather than the raw flat row.

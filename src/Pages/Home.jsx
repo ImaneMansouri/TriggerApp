@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { NavIcon } from "../Components/NavIcon.jsx";
-import { IconHistory, IconPatterns, IconProfile, IconResources } from "../Components/NavIcons.jsx";
+import { IconHistory, IconPatterns, IconResources } from "../Components/NavIcons.jsx";
 import { ErrorState } from "../Components/ErrorState.jsx";
+import { AuraAvatar } from "../Components/AuraAvatar.jsx";
 import { apiGet, apiPost, getUser } from "../lib/api";
 import { navigateWithTransition } from "../lib/motion";
+
+function greeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
 
 function describeTemperature(mean) {
   if (mean < 10) return { label: "Cold", concerning: true };
@@ -247,7 +254,7 @@ export function Home() {
 
   const tiles = today ? buildTiles(today) : [];
   const user = getUser();
-  const character = `avatar-${user?.avatar || "fox"}.png`;
+  const companion = user?.avatar || "fox";
   const adviceLines = today ? buildAdviceLines(tiles) : [];
 
   return (
@@ -258,6 +265,23 @@ export function Home() {
         {status === "error" && (
           <div className="today-hero">
             <ErrorState message={`Couldn't load today's conditions: ${errorMessage}`} onRetry={load} />
+          </div>
+        )}
+
+        {status === "ready" && today && (
+          <div className="today-greeting-row">
+            <div>
+              <div className="today-greeting-label">{greeting()}</div>
+              <div className="today-greeting-name">{user?.username || "there"}</div>
+            </div>
+            <button
+              type="button"
+              className="today-avatar-button"
+              onClick={() => navigateWithTransition(navigate, "/profile")}
+              aria-label="Profile"
+            >
+              <AuraAvatar id={companion} size={34} />
+            </button>
           </div>
         )}
 
@@ -303,16 +327,35 @@ export function Home() {
                 </text>
               </svg>
 
-              <button
-                type="button"
-                className="character-button"
-                onClick={() => navigateWithTransition(navigate, "/log")}
-                aria-label="Log a symptom episode"
-              >
-                <span className="character-float">
-                  <img src={`/icons/${character}`} alt="" />
+              <div className="hero-bubble-area">
+                <span className="companion-peek" aria-hidden="true">
+                  <AuraAvatar id={companion} size={58} />
                 </span>
-              </button>
+                <button
+                  type="button"
+                  className="character-button"
+                  onClick={() => navigateWithTransition(navigate, "/log")}
+                  aria-label="Log a symptom episode"
+                >
+                  <span className="character-float">
+                    <svg className="character-heart-icon" viewBox="0 0 24 24" fill="none" stroke="#e86a52" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
+                    </svg>
+                    <span className="character-tap-label">tap to log</span>
+                  </span>
+                </button>
+              </div>
+
+              <div className="hero-cloud" aria-hidden="true">
+                <svg width="112" height="52" viewBox="0 0 112 52">
+                  <g>
+                    <ellipse cx="40" cy="34" rx="30" ry="17" fill="#fff" />
+                    <ellipse cx="66" cy="30" rx="26" ry="20" fill="#fff" />
+                    <ellipse cx="84" cy="36" rx="20" ry="13" fill="#fff" />
+                    <ellipse cx="56" cy="42" rx="40" ry="10" fill="#fff" />
+                  </g>
+                </svg>
+              </div>
 
               <div className="cloud-badge">{formatDate(today.date)}</div>
             </div>
@@ -322,23 +365,34 @@ export function Home() {
 
       {status === "ready" && today && (
         <div className="today-bottom">
-          <div className="today-bottom-group">
-            <NavIcon to="/history" icon={IconHistory} label="Symptom Log" />
-            <NavIcon to="/patterns" icon={IconPatterns} label="Patterns Analysis" />
-          </div>
-
-          <div className="advice-card">
-            <h2 className="advice-card-title">Today's advice</h2>
+          <button type="button" className="advice-card" onClick={() => navigateWithTransition(navigate, "/relief")}>
+            <h2 className="advice-card-title">Today's Wellness Recs</h2>
             <ul className="advice-card-list">
               {adviceLines.map((line, i) => (
                 <li key={i}>{line}</li>
               ))}
             </ul>
-          </div>
+          </button>
 
-          <div className="today-bottom-group">
-            <NavIcon to="/profile" icon={IconProfile} label="Profile" />
-            <NavIcon to="/resources" icon={IconResources} label="First Aid" />
+          <div className="hero-nav-row">
+            <button type="button" className="hero-nav-bubble" onClick={() => navigateWithTransition(navigate, "/history")}>
+              <span className="hero-nav-circle">
+                <IconHistory />
+              </span>
+              <span className="hero-nav-label">Your story</span>
+            </button>
+            <button type="button" className="hero-nav-bubble" onClick={() => navigateWithTransition(navigate, "/patterns")}>
+              <span className="hero-nav-circle">
+                <IconPatterns />
+              </span>
+              <span className="hero-nav-label">Patterns</span>
+            </button>
+            <button type="button" className="hero-nav-bubble" onClick={() => navigateWithTransition(navigate, "/resources")}>
+              <span className="hero-nav-circle hero-nav-circle-accent">
+                <IconResources />
+              </span>
+              <span className="hero-nav-label">First aid</span>
+            </button>
           </div>
         </div>
       )}

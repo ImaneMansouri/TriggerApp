@@ -71,14 +71,14 @@ export function LogEpisode() {
     if (!file) return;
     setPhotoError("");
     if (file.size > MAX_PHOTO_BYTES) {
-      setPhotoError("That photo is too large — try one under 4MB.");
+      setPhotoError("That photo is too large. Try one under 4MB.");
       return;
     }
     try {
       const dataUrl = await readFileAsDataUrl(file);
       setPhoto(dataUrl);
     } catch {
-      setPhotoError("Couldn't read that photo — try again.");
+      setPhotoError("Couldn't read that photo. Try again.");
     }
   }
 

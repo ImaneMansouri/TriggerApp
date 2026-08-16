@@ -6,10 +6,34 @@ import { apiGet } from "../lib/api";
 
 const REASON_COPY = {
   category_not_evaluated: "We don't compare weather or air quality against this kind of symptom.",
-  below_threshold: "Keep logging — we need a few more matched episodes before we can say anything meaningful.",
+  below_threshold: "Keep logging: we need a few more matched episodes before we can say anything meaningful.",
 };
 
 const SUPPORT_LABEL = { strong: "Strong signal", moderate: "Moderate signal", limited: "Limited signal" };
+
+// Decorative "linked environmental factors" graphic — purely illustrative, represents
+// the idea that patterns connect several environmental signals to a symptom.
+function Constellation() {
+  return (
+    <div className="constellation">
+      <svg viewBox="0 0 320 200" className="constellation-lines" aria-hidden="true">
+        <path
+          d="M70,60 L160,110 M250,50 L160,110 M110,160 L160,110 M235,150 L160,110"
+          stroke="#ffffff"
+          strokeWidth="2.5"
+          strokeDasharray="3 7"
+          strokeLinecap="round"
+          opacity=".85"
+        />
+      </svg>
+      <div className="constellation-node constellation-node-center">🌿</div>
+      <div className="constellation-node constellation-node-a">💧</div>
+      <div className="constellation-node constellation-node-b">🌡</div>
+      <div className="constellation-node constellation-node-c">🍃</div>
+      <div className="constellation-node constellation-node-d">🌫</div>
+    </div>
+  );
+}
 
 function Skeleton() {
   return (
@@ -59,10 +83,15 @@ export function Patterns() {
 
         {status === "ready" && hasAnything && (
           <>
+            <Constellation />
+
             {data.findings.length > 0 && (
               <div className="pattern-list">
                 {data.findings.map((f) => (
-                  <div key={`${f.symptomId}-${f.field}`} className="pattern-card">
+                  <div
+                    key={`${f.symptomId}-${f.field}`}
+                    className={`pattern-card ${f.support === "strong" ? "pattern-card-strong" : ""}`}
+                  >
                     <span className={`pattern-support pattern-support-${f.support}`}>{SUPPORT_LABEL[f.support]}</span>
                     <p className="pattern-message">{f.message}</p>
                     <p className="pattern-sample">

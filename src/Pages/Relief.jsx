@@ -6,7 +6,7 @@ import { navigateWithTransition } from "../lib/motion";
 
 function buildSuggestions(episode, envData) {
   const suggestions = [
-    "Sip water steadily through the day — even mild dehydration can make you feel worse.",
+    "Sip water steadily through the day. Even mild dehydration can make you feel worse.",
     "Give yourself permission to rest. Slowing down for a bit isn't a setback.",
   ];
 
@@ -17,13 +17,13 @@ function buildSuggestions(episode, envData) {
 
   if (isAfternoon && (ozone == null || ozone > 100)) {
     suggestions.push(
-      "Ozone tends to peak in the afternoon — if you can, plan outdoor time for the morning or evening instead."
+      "Ozone tends to peak in the afternoon. If you can, plan outdoor time for the morning or evening instead."
     );
   }
 
   if ((ozone != null && ozone > 100) || (pm25 != null && pm25 > 35)) {
     suggestions.push(
-      "Air quality looks rough today — keeping windows closed and running an air purifier indoors can help."
+      "Air quality looks rough today. Keeping windows closed and running an air purifier indoors can help."
     );
   }
 

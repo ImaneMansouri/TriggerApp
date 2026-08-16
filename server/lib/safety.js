@@ -21,7 +21,7 @@ function evaluateSafety(symptoms) {
       reasons.push(`Breathing difficulty ("${s.name}") logged at high severity`);
     }
     if (s.category === "mouth_throat" && s.severity >= HIGH_SEVERITY) {
-      reasons.push(`Throat/mouth symptom ("${s.name}") logged at high severity — possible throat tightness, swelling, or trouble swallowing`);
+      reasons.push(`Throat/mouth symptom ("${s.name}") logged at high severity: possible throat tightness, swelling, or trouble swallowing`);
     }
     if (s.category === "swelling" && s.severity >= MAX_SEVERITY) {
       reasons.push(`Swelling ("${s.name}") logged at maximum severity`);

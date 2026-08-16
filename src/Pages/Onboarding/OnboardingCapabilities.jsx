@@ -27,7 +27,7 @@ export function OnboardingCapabilities() {
   return (
     <div className="page">
       <div className="page-content">
-        <OnboardingProgress step={4} />
+        <OnboardingProgress step={4} back="/onboarding/symptoms" />
         <h1 className="page-title">Before we start</h1>
 
         <div className="capability-card">

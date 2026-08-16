@@ -34,7 +34,7 @@ export function OnboardingLocation() {
   function handleUseLocation() {
     if (!navigator.geolocation) {
       setShowZipFallback(true);
-      setErrorMessage("Location isn't available in this browser — enter your zip code instead.");
+      setErrorMessage("Location isn't available in this browser. Enter your zip code instead.");
       return;
     }
     setStatus("locating");
@@ -44,7 +44,7 @@ export function OnboardingLocation() {
       () => {
         setStatus("idle");
         setShowZipFallback(true);
-        setErrorMessage("Couldn't get your location — enter your zip code instead.");
+        setErrorMessage("Couldn't get your location. Enter your zip code instead.");
       },
       { timeout: 10000 }
     );
@@ -76,7 +76,7 @@ export function OnboardingLocation() {
   return (
     <div className="page">
       <div className="page-content">
-        <OnboardingProgress step={5} />
+        <OnboardingProgress step={5} back="/onboarding/capabilities" />
         <h1 className="page-title">Where are you?</h1>
         <p className="onboarding-blurb">So we can match your symptoms to your local air and weather.</p>
 
