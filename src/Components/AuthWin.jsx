@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../Styles/AuthWin.css'
 
 export function AuthWin(){ 
 
     // Detect whether user is registering or logging in!
     const [showRegister, setShowRegister] = useState(false)
+    const navigate = useNavigate()
 
     let windowClass = 'auth-win'
     if (showRegister){
@@ -34,7 +36,7 @@ export function AuthWin(){
                         lat: lat,
                         lon: lon,})
                     })
-                    //turn backend response into JS object
+                //turn backend response into JS object
                 const data = await response.json()
 
                 //checks successful signup
@@ -46,9 +48,27 @@ export function AuthWin(){
                 //save token in browser
                 localStorage.setItem('token', data.token)
 
-                console.log(data.user)}, 
-            //error if user rejects location request
-            (error) => {console.log(error)}
+                console.log(data.user)
+                navigate('/onboarding/conditions')},
+            //alt if user rejects location request
+            async (error) => {
+                const response = await fetch('http://localhost:5050/api/auth/signup', {
+                    method: 'POST',
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        email: email,
+                        password: password})
+                })
+                const data = await response.json()
+                if (!response.ok){
+                    console.log(data.error)
+                    return
+                }
+                localStorage.setItem('token', data.token)
+
+                console.log(data.user)
+                navigate('/onboarding/location')},
+            
         )}
 
     // Login form data
@@ -77,6 +97,7 @@ export function AuthWin(){
         }
         localStorage.setItem('token', data.token)
         console.log(data.user)
+        navigate('/home')
     }
 
     return(
