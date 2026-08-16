@@ -6,12 +6,9 @@ function toISODate(date) {
   return date.toISOString().slice(0, 10);
 }
 
-// Pulls `days` of environmental history (ending today) for a user's saved location and
-// upserts it into EnvDaily. Safe to call repeatedly — a retry, a cron re-run, or a user
-// hitting POST /api/env/backfill twice — because every write is keyed on the userId+date
-// unique index rather than a blind insert, so re-running it just refreshes existing rows
-// (e.g. once the archive catches up on days that were previously forecast-sourced) instead
-// of creating duplicates.
+// Updates environmental data for the last 'days' days using the user's current location.
+// If record does not exist, it will be created.
+// Returns the number of records updated or created.
 async function backfillUser(userId, days) {
   const user = await User.findById(userId);
   if (!user) {

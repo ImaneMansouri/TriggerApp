@@ -1,6 +1,5 @@
-// The fixed category taxonomy every user-defined tracked symptom must pick one of. Shared
-// vocabulary between symptom definitions, the safety rule engine, and the pattern engine's
-// category -> environmental-variable relevance map (see lib/patternEngine.js).
+// Every user-defined tracked symptom must pick one category. Shared
+// (see lib/patternEngine.js).
 const SYMPTOM_CATEGORIES = [
   { id: "nose", label: "Nose" },
   { id: "eyes", label: "Eyes" },
