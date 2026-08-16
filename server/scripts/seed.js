@@ -76,8 +76,10 @@ async function main() {
   const envRows = await EnvDaily.find({ userId: user._id }).sort({ date: 1 });
   const humidityValues = envRows.map((r) => r.relative_humidity_2m_mean).filter((v) => v !== null);
   const ozoneValues = envRows.map((r) => r.ozone).filter((v) => v !== null);
+  const pm25Values = envRows.map((r) => r.pm2_5).filter((v) => v !== null);
   const humidityHigh = percentileThreshold(humidityValues, 0.6);
-  const ozoneHigh = percentileThreshold(ozoneValues, 0.6);
+  const ozoneHigh = percentileThreshold(ozoneValues, 0.72);
+  const pm25High = percentileThreshold(pm25Values, 0.65);
 
   const [hives, wheezing, stomachAche, itchyEyes] = trackedSymptoms;
   const episodeDocs = [];
@@ -94,9 +96,30 @@ async function main() {
       episodeDocs.push({ symptomId: hives.id, name: hives.name, category: hives.category, severity: randInt(2, 5), date: dateObj });
     }
 
-    // Wheezing: concentrated on higher-ozone days, same idea, different variable/category.
+    // Wheezing: concentrated on days with elevated ozone OR elevated PM2.5 — both are
+    // respiratory irritants, so triggering on either is the physiologically plausible pairing
+    // (not humidity, which has no such relationship to airway constriction). Ozone and
+    // humidity are naturally anti-correlated in this region's summer weather (hot, sunny,
+    // low-humidity days are exactly when ozone forms), so a narrower ozone-only bias left an
+    // incidental humidity effect strong enough to occasionally outrank the intended signal —
+    // biasing on two irritants at once, with a wider probability contrast, keeps the real
+    // signal dominant regardless of that confound.
     const ozone = env.ozone;
-    const wheezeChance = ozone !== null && ozone >= ozoneHigh ? 0.5 : 0.1;
+    const pm25 = env.pm2_5;
+    // Additive, not a flat OR: a day elevated on just one pollutant still gets a push, and a
+    // day elevated on both (the physiologically worst air-quality days) gets pushed hardest.
+    // Ozone gets the larger weight deliberately: PM2.5 and PM10 are ~0.99-correlated in this
+    // region's real Open-Meteo data (same particulate event, two measurements of it), so a
+    // PM2.5-only bias inevitably drags PM10 up just as much — sometimes more — and the
+    // pattern engine (checking every category-relevant field, PM10 included, per
+    // lib/patternEngine.js's CATEGORY_VARIABLES) has no way to prefer the "intended" one
+    // between two that collinear. Ozone has no such near-duplicate, so weighting it higher
+    // keeps it the dominant, reliably-surfaced signal while PM2.5 still carries a real
+    // secondary effect.
+    let wheezeChance = 0.05;
+    if (ozone !== null && ozone >= ozoneHigh) wheezeChance += 0.65;
+    if (pm25 !== null && pm25 >= pm25High) wheezeChance += 0.12;
+    wheezeChance = Math.min(wheezeChance, 0.85);
     if (Math.random() < wheezeChance) {
       episodeDocs.push({ symptomId: wheezing.id, name: wheezing.name, category: wheezing.category, severity: randInt(2, 4), date: dateObj });
     }
