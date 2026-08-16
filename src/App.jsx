@@ -17,6 +17,7 @@ import { OnboardingCapabilities } from './Pages/Onboarding/OnboardingCapabilitie
 import { OnboardingLocation } from './Pages/Onboarding/OnboardingLocation.jsx'
 import { RequireAuth } from './Components/RequireAuth.jsx'
 import { RequireOnboarding } from './Components/RequireOnboarding.jsx'
+import { Setup } from './Pages/Setup.jsx'
 import { HashRouter, Routes, Route } from 'react-router-dom';
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
           <Route path ="/patterns" element={<RequireAuth><Patterns/></RequireAuth>}/>
           <Route path ="/profile" element={<RequireAuth><Profile/></RequireAuth>}/>
           <Route path ="/resources" element={<RequireAuth><Resources/></RequireAuth>}/>
+          <Route path ="/Setup" element={<Setup/>}/>
         </Routes>
       </HashRouter>
     </>
