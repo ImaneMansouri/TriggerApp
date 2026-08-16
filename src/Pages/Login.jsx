@@ -9,8 +9,9 @@ export function Login() {
             <Header/>
             <main className="login-main">
                 <AuthWin/>
+                <Footer/>
             </main>
-            <Footer/>
+            
         </div>
     );
 }
