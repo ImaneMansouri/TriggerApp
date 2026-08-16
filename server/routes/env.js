@@ -1,15 +1,16 @@
 const express = require("express");
 const EnvDaily = require("../models/EnvDaily");
-const Entry = require("../models/Entry");
+const Episode = require("../models/Episode");
 const requireAuth = require("../middleware/auth");
 const { backfillUser } = require("../lib/backfill");
-const { computeCorrelations, ENV_FIELDS } = require("../lib/correlate");
+const { ensureFreshData } = require("../lib/envIngest");
+const { CONTEXT_FIELDS } = require("../lib/enrichEpisode");
 
 const router = express.Router();
 
 // This router is mounted at "/api" (not "/api/env" like the other routers) because the
-// dashboard endpoints below are top-level (/api/today, /api/patterns, /api/export) and only
-// the backfill trigger itself lives under /api/env — see server.js.
+// dashboard endpoints below are top-level (/api/today, /api/export) and only the backfill/
+// sync triggers themselves live under /api/env — see server.js.
 router.use(requireAuth);
 
 const DEFAULT_BACKFILL_DAYS = 90;
@@ -24,6 +25,21 @@ router.post("/env/backfill", async (req, res) => {
       return res.status(400).json({ error: err.message });
     }
     res.status(500).json({ error: "Backfill failed" });
+  }
+});
+
+// Opportunistic refresh, meant to be called once when the app opens (see src/lib/envSync.js)
+// rather than on a schedule — see lib/envIngest.js for the reusable service this wraps and
+// where real scheduled-job support would plug in later.
+router.post("/env/sync", async (req, res) => {
+  try {
+    const rowsWritten = await ensureFreshData(req.userId);
+    res.json({ message: "Sync complete", rowsWritten });
+  } catch (err) {
+    if (err.message.includes("saved location")) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.status(500).json({ error: "Sync failed" });
   }
 });
 
@@ -82,46 +98,47 @@ router.get("/today", async (req, res) => {
   }
 });
 
-router.get("/patterns", async (req, res) => {
-  try {
-    const correlations = await computeCorrelations(req.userId);
-    res.json({ correlations });
-  } catch (err) {
-    res.status(500).json({ error: "Could not compute correlations" });
-  }
-});
-
 router.get("/export", async (req, res) => {
   try {
-    const [entries, envRows] = await Promise.all([
-      Entry.find({ userId: req.userId }).sort({ date: 1 }),
-      EnvDaily.find({ userId: req.userId }),
-    ]);
-    const envByDate = new Map(envRows.map((row) => [row.date, row]));
+    const episodes = await Episode.find({ userId: req.userId }).sort({ date: 1 });
 
-    const header = ["date", "symptom", "severity", "location", "notes", ...ENV_FIELDS];
+    const header = [
+      "date",
+      "symptom",
+      "category",
+      "severity",
+      "location",
+      "notes",
+      "environmental_status",
+      ...CONTEXT_FIELDS,
+    ];
 
     const csvEscape = (value) => {
       if (value === null || value === undefined) return "";
       const str = String(value);
-      // Quote (and escape inner quotes) only when the value actually needs it, so a plain
-      // number or word doesn't get wrapped in quotes for no reason.
       return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
     };
 
     const lines = [header.map(csvEscape).join(",")];
-    for (const entry of entries) {
-      const date = entry.date.toISOString().slice(0, 10);
-      const env = envByDate.get(date);
-      const row = [
-        date,
-        entry.symptom,
-        entry.severity,
-        entry.location,
-        entry.notes || "",
-        ...ENV_FIELDS.map((field) => (env ? env[field] : "")),
-      ];
-      lines.push(row.map(csvEscape).join(","));
+    // One row per symptom-within-episode — a multi-symptom episode fans out to several rows
+    // sharing the same date/location/environmental snapshot, which is far more useful to
+    // import into a spreadsheet than one row with a comma-packed symptom list.
+    for (const episode of episodes) {
+      const date = episode.date.toISOString().slice(0, 10);
+      const ctx = episode.environmentalContext?.data || {};
+      for (const symptom of episode.symptoms) {
+        const row = [
+          date,
+          symptom.name,
+          symptom.category,
+          symptom.severity,
+          episode.location,
+          episode.notes || "",
+          episode.environmentalContext?.status || "unavailable",
+          ...CONTEXT_FIELDS.map((field) => (ctx[field] === undefined ? "" : ctx[field])),
+        ];
+        lines.push(row.map(csvEscape).join(","));
+      }
     }
 
     res.setHeader("Content-Type", "text/csv");

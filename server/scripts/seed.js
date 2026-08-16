@@ -1,62 +1,56 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const User = require("../models/User");
-const Entry = require("../models/Entry");
+const Episode = require("../models/Episode");
 const EnvDaily = require("../models/EnvDaily");
 const { backfillUser } = require("../lib/backfill");
-const { computeCorrelations } = require("../lib/correlate");
+const { enrichEpisode } = require("../lib/enrichEpisode");
+const { computePatterns } = require("../lib/patternEngine");
 
 const DEMO_EMAIL = "demo@triggerapp.com";
 const DEMO_PASSWORD = "demo123";
-const SEED_DAYS = 60;
+const SEED_DAYS = 75;
 
-// Davenport, Iowa — a real US user location. Pollen coverage (alder/birch/grass/mugwort/
-// ragweed) only exists for Europe in Open-Meteo's air quality model (see lib/openmeteo.js),
-// so every pollen field will come back null here, every day. That's expected, not a bug —
-// GET /api/today's dataAvailable flags will mark the whole pollen tile unavailable, and
-// GET /api/patterns will drop those fields entirely (fewer than 10 non-null observations).
-// The synthetic severity model below is weighted toward fields that *do* have real coverage
-// here instead: pm2_5, ozone, nitrogen_dioxide, pressure_change, relative_humidity_2m_mean,
-// and daily temperature swing.
+// Davenport, Iowa — a real US location. Pollen coverage is Europe-only in Open-Meteo's air
+// quality model (see lib/openmeteo.js), so every pollen field comes back null here, every
+// day — that's expected, and lets the demo also show what "no data for this variable" looks
+// like, not just clean signal.
 const DEMO_LAT = 41.52;
 const DEMO_LON = -90.58;
-
-const SYMPTOMS = ["headache", "migraine", "fatigue", "joint pain", "sinus pressure", "nausea"];
-const LOCATIONS = ["indoor", "outdoor", "unknown"];
 
 function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
-
-function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
+function randInt(min, max) {
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
-
-// "High" for a field is defined relative to this dataset's own spread — raw µg/m³ or hPa
-// values mean nothing on their own without knowing the range they actually came back in for
-// this location and season. The 60th percentile marks the top ~40% of days as "high".
-function highThreshold(values) {
-  if (values.length === 0) return null;
+function percentileThreshold(values, p) {
   const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.floor(sorted.length * 0.6)];
+  return sorted[Math.floor(sorted.length * p)];
 }
 
 async function main() {
   await mongoose.connect(process.env.MONGO_URI);
   console.log("Connected to MongoDB");
 
-  // Idempotent: wipe any previous run of this exact demo account before recreating it, so
-  // re-running `npm run seed` never leaves duplicate entries or stale env rows behind.
   const existing = await User.findOne({ email: DEMO_EMAIL });
   if (existing) {
     await Promise.all([
-      Entry.deleteMany({ userId: existing._id }),
+      Episode.deleteMany({ userId: existing._id }),
       EnvDaily.deleteMany({ userId: existing._id }),
       User.deleteOne({ _id: existing._id }),
     ]);
     console.log("Removed existing demo user and data");
   }
+
+  const trackedSymptoms = [
+    { id: crypto.randomUUID(), name: "Hives", category: "hives", active: true },
+    { id: crypto.randomUUID(), name: "Wheezing", category: "breathing", active: true },
+    { id: crypto.randomUUID(), name: "Stomach ache", category: "stomach", active: true },
+    { id: crypto.randomUUID(), name: "Itchy eyes", category: "eyes", active: true },
+  ];
 
   const hashed = await bcrypt.hash(DEMO_PASSWORD, 10);
   const user = await User.create({
@@ -64,79 +58,108 @@ async function main() {
     password: hashed,
     lat: DEMO_LAT,
     lon: DEMO_LON,
-    conditions: ["migraine", "seasonal allergies"],
+    conditions: ["seasonal allergies"],
+    username: "Demo User",
+    age: 29,
+    avatar: "fox",
+    trackedSymptoms,
+    preferences: { hasEpinephrine: true, acknowledgedDisclaimer: true },
+    isDemo: true,
   });
   console.log(`Created demo user ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 
-  // Backfill first so entries below can be generated against *real* pollen and pressure
-  // values — "make some entries correlate with pollen and pressure" means reading what the
-  // API actually returned for these 60 days and boosting severity around it, not fabricating
-  // env numbers to match invented entries.
+  // Backfill first so episode generation below can read *real* humidity/ozone/pm2.5 values
+  // for this location and bias which days get an episode — not the other way around.
   const rowsWritten = await backfillUser(user._id, SEED_DAYS);
   console.log(`Backfilled ${rowsWritten} days of environmental data`);
 
   const envRows = await EnvDaily.find({ userId: user._id }).sort({ date: 1 });
+  const humidityValues = envRows.map((r) => r.relative_humidity_2m_mean).filter((v) => v !== null);
+  const ozoneValues = envRows.map((r) => r.ozone).filter((v) => v !== null);
+  const humidityHigh = percentileThreshold(humidityValues, 0.6);
+  const ozoneHigh = percentileThreshold(ozoneValues, 0.6);
 
-  const collect = (field) => envRows.map((r) => r[field]).filter((v) => v !== null);
-  const swings = envRows
-    .map((r) => (r.temperature_2m_max !== null && r.temperature_2m_min !== null ? r.temperature_2m_max - r.temperature_2m_min : null))
-    .filter((v) => v !== null);
+  const [hives, wheezing, stomachAche, itchyEyes] = trackedSymptoms;
+  const episodeDocs = [];
 
-  const pm25High = highThreshold(collect("pm2_5"));
-  const ozoneHigh = highThreshold(collect("ozone"));
-  const no2High = highThreshold(collect("nitrogen_dioxide"));
-  const humidityHigh = highThreshold(collect("relative_humidity_2m_mean"));
-  const swingHigh = highThreshold(swings);
-  const pressureDrops = collect("pressure_change");
-  const pressureDropThreshold = pressureDrops.length ? Math.min(...pressureDrops) * 0.5 : null;
+  for (const env of envRows) {
+    const dateObj = new Date(`${env.date}T14:00:00Z`);
 
-  const entries = envRows.map((env) => {
-    let severity = 2 + Math.floor(Math.random() * 3); // baseline 2-4
-
-    // Deliberate signal, weighted toward fields with real coverage at this US location
-    // (pollen has none here — see DEMO_LAT/DEMO_LON above — so it's intentionally left out),
-    // so GET /api/patterns has real correlations to surface instead of pure noise.
-    if (pressureDropThreshold !== null && env.pressure_change !== null && env.pressure_change <= pressureDropThreshold) {
-      severity += 3; // sharp pressure drop — classic migraine/joint-pain trigger
+    // Hives: deliberately concentrated on higher-humidity days, so the pattern engine has a
+    // real episodeMean-vs-baselineMean gap on relative_humidity_2m_mean to detect — nothing
+    // downstream hardcodes this relationship, it has to actually be found in the numbers.
+    const humid = env.relative_humidity_2m_mean;
+    const hivesChance = humid !== null && humid >= humidityHigh ? 0.6 : 0.12;
+    if (Math.random() < hivesChance) {
+      episodeDocs.push({ symptomId: hives.id, name: hives.name, category: hives.category, severity: randInt(2, 5), date: dateObj });
     }
-    if (pm25High !== null && env.pm2_5 !== null && env.pm2_5 >= pm25High) {
-      severity += 2;
-    }
-    if (ozoneHigh !== null && env.ozone !== null && env.ozone >= ozoneHigh) {
-      severity += 2;
-    }
-    if (no2High !== null && env.nitrogen_dioxide !== null && env.nitrogen_dioxide >= no2High) {
-      severity += 1;
-    }
-    if (humidityHigh !== null && env.relative_humidity_2m_mean !== null && env.relative_humidity_2m_mean >= humidityHigh) {
-      severity += 1;
-    }
-    const swing = env.temperature_2m_max !== null && env.temperature_2m_min !== null ? env.temperature_2m_max - env.temperature_2m_min : null;
-    if (swingHigh !== null && swing !== null && swing >= swingHigh) {
-      severity += 1;
-    }
-    if (Math.random() < 0.3) severity -= 1; // a little noise so it isn't a clean step function
 
-    return {
-      userId: user._id,
-      date: new Date(`${env.date}T09:00:00Z`),
-      symptom: pick(SYMPTOMS),
-      severity: clamp(Math.round(severity), 1, 10),
-      location: pick(LOCATIONS),
-    };
-  });
+    // Wheezing: concentrated on higher-ozone days, same idea, different variable/category.
+    const ozone = env.ozone;
+    const wheezeChance = ozone !== null && ozone >= ozoneHigh ? 0.5 : 0.1;
+    if (Math.random() < wheezeChance) {
+      episodeDocs.push({ symptomId: wheezing.id, name: wheezing.name, category: wheezing.category, severity: randInt(2, 4), date: dateObj });
+    }
 
-  await Entry.insertMany(entries);
-  console.log(`Created ${entries.length} symptom entries`);
+    // Stomach ache: purely random, no environmental relationship at all — this is the
+    // category-gating proof: `stomach` has zero candidate variables in the pattern engine
+    // (see lib/patternEngine.js), so this should always land in `stillLearning`, never in
+    // `findings`, no matter how the random draws happen to fall.
+    if (Math.random() < 0.18) {
+      episodeDocs.push({ symptomId: stomachAche.id, name: stomachAche.name, category: stomachAche.category, severity: randInt(1, 5), date: dateObj });
+    }
 
-  const correlations = await computeCorrelations(user._id);
-  console.log("Top correlations from seeded data:");
-  for (const c of correlations.slice(0, 5)) {
-    console.log(`  ${c.field}: r=${c.r} (n=${c.n})`);
+    // Itchy eyes: random and infrequent — with pollen null at this location, the only
+    // candidate variables it has left (pm2_5, ozone) rarely clear the sample threshold at
+    // this occurrence rate, so this mostly demonstrates "We're still learning your patterns."
+    if (Math.random() < 0.15) {
+      episodeDocs.push({ symptomId: itchyEyes.id, name: itchyEyes.name, category: itchyEyes.category, severity: randInt(1, 3), date: dateObj });
+    }
   }
 
+  // Group same-day symptoms into single multi-symptom episodes some of the time, purely so
+  // the demo account also shows what a multi-symptom episode looks like in History/Detail —
+  // otherwise every seeded episode would be single-symptom, which is a real but boring case.
+  const byDate = new Map();
+  for (const s of episodeDocs) {
+    const key = s.date.toISOString();
+    if (!byDate.has(key)) byDate.set(key, []);
+    byDate.get(key).push(s);
+  }
+
+  const LOCATIONS = ["indoor", "outdoor", "both", "unknown"];
+  const episodesToInsert = [...byDate.entries()].map(([iso, symptomsForDay]) => ({
+    userId: user._id,
+    date: new Date(iso),
+    symptoms: symptomsForDay.map(({ symptomId, name, category, severity }) => ({ symptomId, name, category, severity })),
+    location: pick(LOCATIONS),
+    environmentalContext: { status: "pending" },
+    safety: { flagged: false, reasons: [] },
+    isDemo: true,
+  }));
+
+  const inserted = await Episode.insertMany(episodesToInsert);
+  console.log(`Created ${inserted.length} episodes (${episodeDocs.length} symptom-occurrences)`);
+
+  // Run every seeded episode through the exact same enrichment path a real save uses, so demo
+  // data's environmentalContext is populated the same way — not specially pre-filled.
+  for (const episode of inserted) {
+    await enrichEpisode(episode._id);
+  }
+  console.log("Enriched all seeded episodes with environmental context");
+
+  const patterns = await computePatterns(user._id);
+  console.log("\nPattern engine output (computed from the seeded data, not hardcoded):");
+  if (patterns.findings.length === 0) {
+    console.log("  No findings cleared the sample/effect-size threshold this run (random seed data varies run to run).");
+  }
+  for (const f of patterns.findings) {
+    console.log(`  [${f.support}] ${f.message} (n=${f.nEpisodes} episodes vs n=${f.nBaseline} baseline days, effect size ${f.effectSize})`);
+  }
+  console.log("  Still learning:", patterns.stillLearning.map((s) => `${s.name} (${s.reason})`).join(", "));
+
   await mongoose.disconnect();
-  console.log("Done.");
+  console.log("\nDone.");
 }
 
 main().catch((err) => {

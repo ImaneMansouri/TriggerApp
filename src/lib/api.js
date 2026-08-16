@@ -56,6 +56,11 @@ export async function apiPatch(path, body) {
   return res.json();
 }
 
+export async function apiDelete(path) {
+  const res = await request(path, { method: "DELETE" });
+  return res.json();
+}
+
 // Streams a file response (e.g. CSV export) to the browser's download flow.
 export async function apiDownload(path, filename) {
   const res = await request(path);

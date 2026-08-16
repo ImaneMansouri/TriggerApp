@@ -4,7 +4,10 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 
 const authRouter = require("./routes/auth");
-const entriesRouter = require("./routes/entries");
+const episodesRouter = require("./routes/episodes");
+const symptomsRouter = require("./routes/symptoms");
+const profileRouter = require("./routes/profile");
+const patternsRouter = require("./routes/patterns");
 const envRouter = require("./routes/env");
 
 const app = express();
@@ -23,9 +26,12 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRouter);
-app.use("/api/entries", entriesRouter);
-// Mounted at "/api" rather than "/api/env" — its routes cover /api/env/backfill as well as
-// the top-level /api/today, /api/patterns, /api/export dashboard endpoints. See routes/env.js.
+app.use("/api/episodes", episodesRouter);
+app.use("/api/symptoms", symptomsRouter);
+app.use("/api/profile", profileRouter);
+app.use("/api/patterns", patternsRouter);
+// Mounted at "/api" rather than "/api/env" — its routes cover /api/env/backfill and
+// /api/env/sync as well as the top-level /api/today, /api/export endpoints. See routes/env.js.
 app.use("/api", envRouter);
 
 mongoose

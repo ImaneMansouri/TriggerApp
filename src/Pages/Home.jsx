@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BottomNav } from "../Components/BottomNav.jsx";
-import { apiGet } from "../lib/api";
+import { NavIcon } from "../Components/NavIcon.jsx";
+import { IconHistory, IconPatterns, IconProfile, IconResources } from "../Components/NavIcons.jsx";
+import { ErrorState } from "../Components/ErrorState.jsx";
+import { apiGet, apiPost, getUser } from "../lib/api";
+import { navigateWithTransition } from "../lib/motion";
 
 function describeTemperature(mean) {
   if (mean < 10) return { label: "Cold", concerning: true };
@@ -51,6 +54,18 @@ function describePollen(mean) {
   if (mean <= 50) return { label: "Moderate", concerning: false };
   return { label: "High", concerning: true };
 }
+
+// Scattered sky positions, keyed by tile — not a grid. Two loose side columns
+// (varying heights/sizes within each) so nothing collides with the curved
+// arc text, which owns the center-top strip above the hero button.
+const SKY_POSITIONS = {
+  temperature: { top: "0%", side: "right", offset: "4%", size: "lg" },
+  humidity: { top: "16%", side: "right", offset: "11%", size: "md" },
+  ozone: { top: "31%", side: "right", offset: "7%", size: "sm" },
+  pressure: { top: "2%", side: "left", offset: "4%", size: "md" },
+  airQuality: { top: "18%", side: "left", offset: "9%", size: "sm" },
+  pollen: { top: "33%", side: "left", offset: "7%", size: "sm" },
+};
 
 // Builds the tile list from a GET /api/today payload, skipping any tile whose
 // backing field(s) are unavailable per `dataAvailable` rather than rendering a blank.
@@ -107,7 +122,7 @@ function buildTiles(data) {
       icon: "air-quality.png",
       name: "Air Quality",
       value: Math.round(data.airQuality.pm2_5 * 10) / 10,
-      unit: "µg/m³ PM2.5",
+      unit: "µg/m³",
       label,
       concerning,
     });
@@ -146,25 +161,42 @@ function buildTiles(data) {
   return tiles;
 }
 
-function pickCharacter(tiles) {
-  const concerningCount = tiles.filter((t) => t.concerning).length;
-  if (concerningCount >= 3) return "character-rough.png";
-  if (concerningCount >= 1) return "character-okay.png";
-  return "character-good.png";
-}
-
-function buildAdvice(tiles) {
+function buildAdviceLines(tiles) {
   const concerning = tiles.filter((t) => t.concerning);
   if (concerning.length === 0) {
-    return "Conditions look calm today — a good day to get outside if you're up for it.";
+    return ["Conditions look calm today.", "A good day to get outside if you're up for it.", "Stay hydrated either way."];
   }
-  const names = concerning.map((t) => t.name.toLowerCase()).join(" and ");
-  return `${concerning[0].name} looks like it could be a trigger today (${names}). Consider pacing yourself and checking in with how you're feeling.`;
+  const lines = [`${concerning[0].name} looks like a possible trigger today (${concerning[0].label.toLowerCase()}).`];
+  if (concerning.length > 1) {
+    lines.push(`${concerning[1].name} is worth keeping an eye on too.`);
+  }
+  lines.push("Pace yourself and check in with how you're feeling.");
+  return lines.slice(0, 3);
 }
 
 function formatDate(iso) {
   const d = new Date(`${iso}T00:00:00`);
-  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return d.toLocaleDateString(undefined, { month: "long", day: "numeric" }).toUpperCase();
+}
+
+function TodaySkeleton() {
+  return (
+    <>
+      {Object.values(SKY_POSITIONS)
+        .slice(0, 5)
+        .map((pos, i) => (
+          <div
+            key={i}
+            className={`sky-icon-skeleton skeleton sky-icon-${pos.size}`}
+            style={{ top: pos.top, [pos.side]: pos.offset }}
+          />
+        ))}
+      <div className="today-hero">
+        <div className="character-button-skeleton skeleton" />
+        <div className="cloud-badge-skeleton skeleton" />
+      </div>
+    </>
+  );
 }
 
 export function Home() {
@@ -173,8 +205,9 @@ export function Home() {
   const [today, setToday] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
+  const load = useCallback(() => {
     let cancelled = false;
+    setStatus("loading");
     apiGet("/api/today")
       .then((data) => {
         if (cancelled) return;
@@ -191,56 +224,106 @@ export function Home() {
     };
   }, []);
 
+  useEffect(() => load(), [load]);
+
+  // Opportunistic refresh (item 7): there's no scheduled job runner in this deployment, so
+  // "keep the environmental baseline current" happens here instead — once, when the app
+  // opens. Fire-and-forget: a slow or failed sync must never block or affect the Today
+  // screen, which already has its own /api/today fetch and retry above.
+  useEffect(() => {
+    apiPost("/api/env/sync", {}).catch(() => {});
+  }, []);
+
   const tiles = today ? buildTiles(today) : [];
-  const character = today ? pickCharacter(tiles) : "character-okay.png";
+  const user = getUser();
+  const character = `avatar-${user?.avatar || "fox"}.png`;
+  const adviceLines = today ? buildAdviceLines(tiles) : [];
 
   return (
-    <div className="page page-with-nav">
-      <div className="page-content">
-        {status === "loading" && <p className="status-message">Loading today's conditions...</p>}
+    <div className="page today-page">
+      <div className="today-sky">
+        {status === "loading" && <TodaySkeleton />}
 
         {status === "error" && (
-          <div className="status-message status-message-error">
-            <p>Couldn't load today's conditions: {errorMessage}</p>
+          <div className="today-hero">
+            <ErrorState message={`Couldn't load today's conditions: ${errorMessage}`} onRetry={load} />
           </div>
         )}
 
         {status === "ready" && today && (
           <>
-            <div className="date-badge">{formatDate(today.date)}</div>
-
-            <div className="today-layout">
-              <div className="tile-ring">
-                {tiles.map((tile) => (
-                  <div key={tile.key} className="metric-tile">
-                    <img src={`/icons/${tile.icon}`} alt="" className="metric-tile-icon" />
-                    <div className="metric-tile-value">
-                      {tile.value}
-                      <span className="metric-tile-unit">{tile.unit}</span>
-                    </div>
-                    <div className="metric-tile-name">{tile.name}</div>
-                    <div className="metric-tile-label">{tile.label}</div>
-                  </div>
-                ))}
-
-                <button
-                  type="button"
-                  className="character-button"
-                  onClick={() => navigate("/log")}
-                  aria-label="Log a symptom episode"
+            {tiles.map((tile, i) => {
+              const pos = SKY_POSITIONS[tile.key] || SKY_POSITIONS.pollen;
+              return (
+                <div
+                  key={tile.key}
+                  className={`sky-icon sky-icon-${pos.size}`}
+                  style={{ top: pos.top, [pos.side]: pos.offset, animationDelay: `${i * 0.09}s` }}
                 >
-                  <img src={`/icons/${character}`} alt="How you're doing today" />
-                </button>
-              </div>
-            </div>
+                  <div
+                    className="sky-icon-drift"
+                    style={{ animationDuration: `${4.6 + (i % 3) * 0.7}s`, animationDelay: `${(i % 4) * 0.3}s` }}
+                  >
+                    <img src={`/icons/${tile.icon}`} alt="" className="sky-icon-img" />
+                    <div className="sky-icon-label">{tile.name}</div>
+                    <div className="sky-icon-value">
+                      {tile.value}
+                      <span className="sky-icon-unit">{tile.unit}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
 
-            <div className="advice-card">
-              <p>{buildAdvice(tiles)}</p>
+            <div className="today-hero">
+              <svg className="curved-text" viewBox="0 0 220 120" aria-hidden="true">
+                <path id="curveArc" d="M 8,104 A 102,102 0 0 1 212,104" fill="none" />
+                <text>
+                  <textPath href="#curveArc" startOffset="50%" textAnchor="middle">
+                    HOW ARE YOU FEELING TODAY?
+                  </textPath>
+                </text>
+              </svg>
+
+              <button
+                type="button"
+                className="character-button"
+                onClick={() => navigateWithTransition(navigate, "/log")}
+                aria-label="Log a symptom episode"
+              >
+                <span className="character-float">
+                  <img src={`/icons/${character}`} alt="" />
+                </span>
+              </button>
+
+              <div className="cloud-badge">{formatDate(today.date)}</div>
             </div>
           </>
         )}
       </div>
-      <BottomNav />
+
+      {status === "ready" && today && (
+        <div className="today-bottom">
+          <div className="today-bottom-group">
+            <NavIcon to="/history" icon={IconHistory} label="Symptom Log" />
+            <NavIcon to="/patterns" icon={IconPatterns} label="Patterns Analysis" />
+          </div>
+
+          <div className="advice-card">
+            <h2 className="advice-card-title">Today's advice</h2>
+            <ul className="advice-card-list">
+              {adviceLines.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="today-bottom-group">
+            <NavIcon to="/profile" icon={IconProfile} label="Profile" />
+            <NavIcon to="/resources" icon={IconResources} label="First Aid" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { OnboardingProgress } from "../../Components/OnboardingProgress.jsx";
-import { apiPatch, getToken, setSession } from "../../lib/api";
+import { apiPatch, apiPost, getToken, setSession } from "../../lib/api";
+import { navigateWithTransition } from "../../lib/motion";
 
 // Free, keyless US zip -> lat/lon lookup, used only for the "deny geolocation" fallback path.
 const ZIP_LOOKUP = (zip) => `https://api.zippopotam.us/us/${zip}`;
@@ -18,7 +19,12 @@ export function OnboardingLocation() {
     try {
       const { user } = await apiPatch("/api/auth/profile", { lat, lon });
       setSession(getToken(), user);
-      navigate("/onboarding/conditions");
+      // One-time setup, not the frequent episode-save path — worth actually waiting for
+      // (with a loading state) rather than firing-and-forgetting, so Home doesn't show an
+      // empty/error state on first load. If Open-Meteo is having a bad day, we still let the
+      // user in — Home's own retry handles a missing today's row gracefully either way.
+      await apiPost("/api/env/backfill", {}).catch(() => {});
+      navigateWithTransition(navigate, "/");
     } catch (err) {
       setErrorMessage(err.message);
       setStatus("idle");
@@ -70,12 +76,12 @@ export function OnboardingLocation() {
   return (
     <div className="page">
       <div className="page-content">
-        <OnboardingProgress step={1} />
+        <OnboardingProgress step={5} />
         <h1 className="page-title">Where are you?</h1>
         <p className="onboarding-blurb">So we can match your symptoms to your local air and weather.</p>
 
         <button type="button" className="save-button" onClick={handleUseLocation} disabled={busy}>
-          {status === "locating" ? "Locating..." : status === "saving" ? "Saving..." : "Use my location"}
+          {status === "locating" ? "Locating..." : status === "saving" ? "Setting up your data..." : "Use my location"}
         </button>
 
         {errorMessage && <p className="status-message status-message-error">{errorMessage}</p>}
