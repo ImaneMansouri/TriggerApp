@@ -16,11 +16,15 @@ export function AuthWin(){
     const[password, setPassword] = useState('')
 
     async function signup(event){
+        //stops form from refreshing page or doing anything goofy
         event.preventDefault()
+        //grabs location if user approves through browser
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const lat = position.coords.latitude
                 const lon = position.coords.longitude
+
+                //sends sign up form info to backend
                 const response = await fetch('http://localhost:5050/api/auth/signup', {
                     method: 'POST',
                     headers: {"Content-Type": "application/json"},
@@ -30,10 +34,50 @@ export function AuthWin(){
                         lat: lat,
                         lon: lon,})
                     })
+                    //turn backend response into JS object
                 const data = await response.json()
-                console.log(data)}, 
+
+                //checks successful signup
+                if (!response.ok){
+                    console.log(data.error)
+                    return
+                }
+                
+                //save token in browser
+                localStorage.setItem('token', data.token)
+
+                console.log(data.user)}, 
+            //error if user rejects location request
             (error) => {console.log(error)}
         )}
+
+    // Login form data
+    const[loginEmail, setLoginEmail] = useState('')
+    const[loginPassword, setLoginPassword] = useState('')
+
+    async function login(event){
+        event.preventDefault()
+
+        const response = await fetch(
+            'http://localhost:5050/api/auth/login',
+            {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    email: loginEmail,
+                    password: loginPassword
+                })
+            }
+        )
+
+        const data = await response.json()
+        if(!response.ok){
+            console.log(data.error)
+            return
+        }
+        localStorage.setItem('token', data.token)
+        console.log(data.user)
+    }
 
     return(
         <div className={windowClass}>
@@ -58,11 +102,15 @@ export function AuthWin(){
             <div className="login-form">
                 <h1>Welcome Back</h1>
                 <p>Log in to continue</p>
-                <form>
+                <form onSubmit = {login}>
                     <input type = "email"
-                        placeholder="email"/>
+                        placeholder="email"
+                        value={loginEmail}
+                        onChange={(event) => setLoginEmail(event.target.value)}/>
                     <input type="password"
-                        placeholder="password"/>
+                        placeholder="password"
+                        value={loginPassword}
+                        onChange={(event) => setLoginPassword(event.target.value)}/>
                     <a href='#'>Forgot password?</a>
                     <button type="submit">Log In</button>
                 </form>
