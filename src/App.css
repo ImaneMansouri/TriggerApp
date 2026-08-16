@@ -386,22 +386,47 @@ button:not(:disabled):active,
 .today-page {
   background: var(--gradient-sky);
   overflow-x: hidden;
+  /* Overrides .page's min-height:100vh — this screen sizes to its own content instead of
+     force-stretching to fill tall viewports. Forcing full height here is what previously
+     created a large empty gradient strip (first below today-bottom, then — after an
+     interim fix that grew+centered today-sky instead — around the icon cluster): the actual
+     content (icon cluster + advice card + nav) just isn't tall enough to fill every screen,
+     and stretching a fixed-size composition to fit a variable, often-taller viewport creates
+     a gap somewhere no matter where the extra space gets pushed to. Sizing to content removes
+     the gap by construction rather than relocating it. */
+  min-height: 0;
 }
 
 .today-sky {
   position: relative;
-  min-height: 34vh;
-  padding: var(--space-lg) var(--space-md) 0;
+  padding: var(--space-lg) var(--space-md);
+}
+
+.today-sky-content {
+  position: relative;
+  width: 100%;
 }
 
 .sky-icon {
   position: absolute;
   z-index: 1;
+  text-align: center;
+  width: 108px;
+}
+
+.sky-icon-drift {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  width: 84px;
+}
+
+/* .sky-icon uses the default flex-item sizing (not align-items:center on the outer element),
+   so these text children stretch to the full 108px box and wrap within it — without this,
+   a flex column's align-items:center lets children shrink to their own content width instead,
+   which is what let long labels ("TEMPERATURE", "PRESSURE") overflow their slot and clip. */
+.sky-icon-label,
+.sky-icon-value {
+  width: 100%;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -445,9 +470,16 @@ button:not(:disabled):active,
 }
 
 .sky-icon-value {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 800;
+  line-height: 1.3;
   color: var(--color-text-on-sky);
+}
+
+.sky-icon-qualifier {
+  font-size: 0.62rem;
+  font-weight: 600;
+  opacity: 0.8;
 }
 
 .sky-icon-unit {
@@ -484,8 +516,26 @@ button:not(:disabled):active,
   pointer-events: none;
 }
 
+/* Narrow phones (iPhone SE class and similar, ~375px): the arc's fixed width and the sky
+   icons' offsets were tuned for ~420-480px and start colliding below that — pull both back
+   in so there's still clear separation. */
+@media (max-width: 400px) {
+  .curved-text {
+    width: 168px;
+  }
+  .sky-icon {
+    width: 84px;
+  }
+  .sky-icon-label,
+  .sky-icon-value {
+    font-size: 0.52rem;
+  }
+}
+
 .curved-text text {
-  font-size: 12px;
+  /* viewBox is 260 wide now (was 220) — sized up to match so the rendered text stays the
+     same visual size at the same CSS width. */
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.6px;
   fill: var(--color-text-on-sky);

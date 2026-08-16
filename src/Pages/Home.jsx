@@ -36,16 +36,27 @@ function formatPressureChange(change) {
   return `→${rounded}`;
 }
 
+// EPA AQI breakpoints, PM2.5 24-hour (µg/m³), per the revised NAAQS effective May 2024:
+// Good 0-9.0, Moderate 9.1-35.4, Unhealthy for Sensitive Groups 35.5-55.4, Unhealthy+ above
+// that. The Good/Moderate line moved from 12.0 to 9.0 in the 2024 revision — verified against
+// EPA's own AQS breakpoints table (aqs.epa.gov) and the 2024 PM NAAQS fact sheet.
 function describeAirQuality(pm25) {
-  if (pm25 <= 12) return { label: "Good", concerning: false };
+  if (pm25 <= 9.0) return { label: "Good", concerning: false };
   if (pm25 <= 35.4) return { label: "Moderate", concerning: false };
   if (pm25 <= 55.4) return { label: "Poor", concerning: true };
   return { label: "Very poor", concerning: true };
 }
 
+// EPA AQI breakpoints, ozone 8-hour: Good 0-0.054ppm, Moderate 0.055-0.070ppm, Unhealthy for
+// Sensitive Groups 0.071-0.085ppm (source: aqs.epa.gov/aqsweb/documents/codetables/aqi_breakpoints.html).
+// Open-Meteo reports ozone in µg/m³, not ppm, so these are converted at the reference
+// conditions EPA specifies for gaseous pollutants (25°C, 760mmHg): µg/m³ = ppb × 48/24.45.
+// That puts 0.054ppm at ~106 µg/m³ and 0.070ppm at ~137 µg/m³ — i.e. 59 µg/m³ (~30ppb) is
+// genuinely "Good," not a mislabel; the boundary itself just needed tightening from the
+// earlier rough 100/140 approximation to these precise converted values.
 function describeOzone(ozone) {
-  if (ozone <= 100) return { label: "Good", concerning: false };
-  if (ozone <= 140) return { label: "Moderate", concerning: false };
+  if (ozone <= 106) return { label: "Good", concerning: false };
+  if (ozone <= 137) return { label: "Moderate", concerning: false };
   return { label: "High", concerning: true };
 }
 
@@ -59,12 +70,12 @@ function describePollen(mean) {
 // (varying heights/sizes within each) so nothing collides with the curved
 // arc text, which owns the center-top strip above the hero button.
 const SKY_POSITIONS = {
-  temperature: { top: "0%", side: "right", offset: "4%", size: "lg" },
-  humidity: { top: "16%", side: "right", offset: "11%", size: "md" },
-  ozone: { top: "31%", side: "right", offset: "7%", size: "sm" },
-  pressure: { top: "2%", side: "left", offset: "4%", size: "md" },
-  airQuality: { top: "18%", side: "left", offset: "9%", size: "sm" },
-  pollen: { top: "33%", side: "left", offset: "7%", size: "sm" },
+  temperature: { top: "30%", side: "right", offset: "2%", size: "lg" },
+  humidity: { top: "52%", side: "right", offset: "6%", size: "md" },
+  ozone: { top: "74%", side: "right", offset: "3%", size: "sm" },
+  pressure: { top: "32%", side: "left", offset: "2%", size: "md" },
+  airQuality: { top: "54%", side: "left", offset: "5%", size: "sm" },
+  pollen: { top: "76%", side: "left", offset: "3%", size: "sm" },
 };
 
 // Builds the tile list from a GET /api/today payload, skipping any tile whose
@@ -251,7 +262,7 @@ export function Home() {
         )}
 
         {status === "ready" && today && (
-          <>
+          <div className="today-sky-content">
             {tiles.map((tile, i) => {
               const pos = SKY_POSITIONS[tile.key] || SKY_POSITIONS.pollen;
               return (
@@ -269,6 +280,7 @@ export function Home() {
                     <div className="sky-icon-value">
                       {tile.value}
                       <span className="sky-icon-unit">{tile.unit}</span>
+                      <span className="sky-icon-qualifier"> · {tile.label}</span>
                     </div>
                   </div>
                 </div>
@@ -276,8 +288,14 @@ export function Home() {
             })}
 
             <div className="today-hero">
-              <svg className="curved-text" viewBox="0 0 220 120" aria-hidden="true">
-                <path id="curveArc" d="M 8,104 A 102,102 0 0 1 212,104" fill="none" />
+              {/* A tight curve (small radius relative to chord width) crams letters together
+                  near the peak until they visually overlap — this arc used to be a near-exact
+                  semicircle (radius 102 for a 204px chord), which is what made "FEELING" read
+                  as garbled overlapping letters. A much larger radius on a wider/shallower
+                  viewBox keeps the same gentle "wrapping over the hero" read without the
+                  letters colliding into each other. */}
+              <svg className="curved-text" viewBox="0 0 260 90" aria-hidden="true">
+                <path id="curveArc" d="M 10,80 A 380,380 0 0 1 250,80" fill="none" />
                 <text>
                   <textPath href="#curveArc" startOffset="50%" textAnchor="middle">
                     HOW ARE YOU FEELING TODAY?
@@ -298,7 +316,7 @@ export function Home() {
 
               <div className="cloud-badge">{formatDate(today.date)}</div>
             </div>
-          </>
+          </div>
         )}
       </div>
 
